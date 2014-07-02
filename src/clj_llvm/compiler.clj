@@ -45,10 +45,22 @@
 (defmethod gen-expr :local [{:keys [arg-id]}]
   (expr/->Arg arg-id))
 
+(defn globalize-fn [fn- name ns-]
+  (let [extern?    (-> name meta (#(dbg "meta" %)) :extern)
+        exact?     (-> name meta :exact)
+        properties (merge (if extern? {:linkage :extern}
+                                      {})
+                          (if exact? {:name (str name)}
+                                     {:name (str ns- "/" name)}))]
+    (merge fn- (dbg "  properties" properties))))
+
 (defmethod gen-expr :def [{{name :name ns* :ns} :var init :init}]
-  (let [init (gen-expr init)]
+  (let [init* (gen-expr init)
+        fn?  (types/FunctionType? (:type init*))
+        init (if fn? (globalize-fn init* name ns*)
+                     init*)]
     (swap! *globals* assoc-in [ns* name] init)
-    (if (types/FunctionType? (:type init))
+    (if fn?
         init
         (c/global (str ns* "/" name) (:type init) init))))
 
