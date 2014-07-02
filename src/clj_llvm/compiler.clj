@@ -14,6 +14,8 @@
 
 
 
+(defn dbg [& args] (apply println args) (last args))
+
 (defmulti gen-expr :op)
 
 (defmethod gen-expr :do [{:keys [statements ret]}]
@@ -36,7 +38,7 @@
       {:type      (c/fn-t (repeat (count params) types/Int64)
                           types/Int64)
        :name      (str (gensym "fn"))
-       :arg-names (mapv :name params)
+       :arg-names (mapv #(-> % :name str) params)
        :body      (gen-expr body)}))
 
 ; TODO: Locals other than args
