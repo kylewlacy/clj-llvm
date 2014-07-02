@@ -2,7 +2,8 @@
   (:require [clojure.tools.analyzer       :as    analyzer]
             [clojure.tools.analyzer.utils :as    utils]
             [clojure.tools.macro          :refer [macrolet]]
-            [clojure.tools.analyzer.env   :as    env]))
+            [clojure.tools.analyzer.env   :as    env]
+            [clojure.java.io              :as    io]))
 
 
 
@@ -110,11 +111,6 @@
                     #'analyzer/parse         parse
                     #'analyzer/create-var    create-var
                     #'analyzer/var?          var?*
-
-(defn analyze-file [filename env]
-  (let [file-contents (slurp filename)
-        file-form     (read-string file-contents)]
-    (analyze file-form env)))
                     #'env/*env*              (atom env)}
       {:ast       (analyzer/analyze form env)
        :local-env (empty-local-env)
@@ -122,3 +118,31 @@
 
 (defn analyze [& args]
   ((apply analyze* args) :ast))
+
+
+
+; http://stackoverflow.com/a/6840646/1311454
+(defn read-all [buffer]
+  (let [eof (Object.)]
+    (take-while #(not= % eof)
+                (repeatedly #(read buffer false eof)))))
+
+(defn analyze-file*
+  ([filename] (analyze-file* filename (empty-env)))
+  ([filename env]
+    (let [forms (-> filename
+                    io/file
+                    io/reader
+                    java.io.PushbackReader.
+                    read-all)]
+      (loop [unanalyzed forms asts [] env env]
+        (if (empty? unanalyzed)
+            {:asts (vec asts) :env env}
+            (let [analysis (analyze* (first unanalyzed)
+                                     env)]
+              (recur (rest unanalyzed)
+                     (concat asts [(analysis :ast)])
+                     (analysis :env))))))))
+
+(defn analyze-file [& args]
+  ((apply analyze-file* args) :asts))
