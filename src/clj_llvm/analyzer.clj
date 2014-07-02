@@ -6,7 +6,7 @@
 
 
 
-(def default-ns 'user)
+(def ^:dynamic default-ns 'user)
 
 (defn new-ns [name] {:mappings {}
                      :aliases  {}
