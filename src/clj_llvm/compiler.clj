@@ -93,7 +93,7 @@
                   #'config/*target* (config/default-target)}
     (-> (apply gen-module main-ns (map gen-expr asts))
         mjolnir/to-db
-        mjolnir/to-llvm-module)))
+        (mjolnir/to-llvm-module true))))
 
 (defn -main [input-file main-ns output-exe & args]
   (mjolnir/to-exe
