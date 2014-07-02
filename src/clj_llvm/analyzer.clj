@@ -12,12 +12,13 @@
                      :aliases  {}
                      :ns       name})
 
-(defn empty-env [] {:context    :exec
-                    :locals     {}
-                    :ns         default-ns})
+(defn empty-local-env [] {:context    :exec
+                          :locals     {}
+                          :ns         default-ns})
 
-(defn empty-global-env []
-  {:namespaces {default-ns (new-ns default-ns)}})
+(defn empty-env []
+  {:namespaces {default-ns (new-ns default-ns)}
+   :ns default-ns})
 
 
 
@@ -102,18 +103,22 @@
 
 
 
-(defn analyze
-  ([form] (analyze form (empty-env)))
-  ([form env] (analyze form env (empty-global-env)))
-  ([form env global-env]
+(defn analyze*
+  ([form] (analyze* form (empty-env)))
+  ([form env]
     (with-bindings {#'analyzer/macroexpand-1 macroexpand-1*
                     #'analyzer/parse         parse
                     #'analyzer/create-var    create-var
                     #'analyzer/var?          var?*
-                    #'env/*env*              (atom global-env)}
-      (analyzer/analyze form env))))
 
 (defn analyze-file [filename env]
   (let [file-contents (slurp filename)
         file-form     (read-string file-contents)]
     (analyze file-form env)))
+                    #'env/*env*              (atom env)}
+      {:ast       (analyzer/analyze form env)
+       :local-env (empty-local-env)
+       :env       @env/*env*})))
+
+(defn analyze [& args]
+  ((apply analyze* args) :ast))
