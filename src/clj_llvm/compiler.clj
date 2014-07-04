@@ -12,19 +12,23 @@
 
 (def ^:dynamic *globals*)
 
+(defmulti gen-expr :op)
+(defmulti gen-const :type)
 
+(declare globalize-fn)
 
 (defn dbg [& args] (apply println args) (last args))
 
-(defmulti gen-expr :op)
+
+
 
 (defmethod gen-expr :do [{:keys [statements ret]}]
   (let [statements (if statements (concat statements [ret])
                                   [ret])]
     (apply c/do (map gen-expr statements))))
 
-(defmethod gen-expr :const [{:keys [val]}]
-  (c/const val -> types/Int64))
+(defmethod gen-expr :const [ast]
+  (gen-const ast))
 
 (defmethod gen-expr :invoke [{*fn :fn args :args}]
   (expr/->Call (gen-expr *fn) (mapv gen-expr args)))
@@ -44,15 +48,6 @@
 ; TODO: Locals other than args
 (defmethod gen-expr :local [{:keys [arg-id]}]
   (expr/->Arg arg-id))
-
-(defn globalize-fn [fn- name ns-]
-  (let [extern?    (-> name meta :extern)
-        exact?     (-> name meta :exact)
-        properties (merge (if extern? {:linkage :extern}
-                                      {})
-                          (if exact? {:name (str name)}
-                                     {:name (str ns- "/" name)}))]
-    (merge fn- properties)))
 
 (defmethod gen-expr :def [{{name :name ns* :ns} :var init :init}]
   (let [init* (gen-expr init)
@@ -75,6 +70,33 @@
   (println "Don't know how to gen AST:" ast))
 
 
+
+(defmethod gen-const :number [{:keys [val]}]
+  (c/const val -> types/Int64))
+
+(defmethod gen-const :string [{:keys [val]}]
+  (c/let [string (expr/->Malloc (types/->ArrayType types/Int8 (inc (count val))))]
+    (apply c/do (concat
+      (map
+        #(c/aset string
+                 (c/const % -> types/Int64)
+                 (c/const (int (nth val %)) -> types/Int8))
+        (range (count val)))
+      [(c/aset string
+               (c/const (inc (count val)) -> types/Int64)
+               (c/const 0 -> types/Int8))]))
+    (c/cast types/Int8* string)))
+
+
+
+(defn globalize-fn [fn- name ns-]
+  (let [extern?    (-> name meta :extern)
+        exact?     (-> name meta :exact)
+        properties (merge (if extern? {:linkage :extern}
+                                      {})
+                          (if exact? {:name (str name)}
+                                     {:name (str ns- "/" name)}))]
+    (merge fn- properties)))
 
 (defn gen-module [main-ns & exprs]
   (apply c/module [] (concat exprs
@@ -102,14 +124,3 @@
       (analyzer/analyze-file input-file
                              (analyzer/empty-env)))
     output-exe))
-
-
-
-(comment
-  ; Sample file emission
-  (mjolnir.targets.target/emit-to-file
-    (mjolnir.config/default-target)
-    (:module (build-module 'user (analyzer/analyze
-                '(def -main (fn* -main [] 2)))))
-    {:output-type :asm})
-)
