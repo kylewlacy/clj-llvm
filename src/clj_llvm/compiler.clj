@@ -7,15 +7,18 @@
             [mjolnir.types        :as    types]
             [mjolnir.expressions  :as    expr]
             [mjolnir.config       :as    config]
-            [clj-llvm.analyzer    :as    analyzer])
+            [clj-llvm.analyzer    :as    analyzer]
+            [clj-llvm.runtime     :as    rt])
   (:alias c mjolnir.constructors))
 
 (def ^:dynamic *globals*)
+(def ^:dynamic *libs*)
 
 (defmulti gen-expr :op)
 (defmulti gen-const :type)
 
 (declare globalize-fn)
+(declare gen-host-call)
 
 (defn dbg [& args] (apply println args) (last args))
 
@@ -66,6 +69,12 @@
 (defmethod gen-expr :with-meta [{:keys [expr]}]
   (gen-expr expr))
 
+(defmethod gen-expr :host-interop [ast]
+  (gen-host-call (assoc ast :method (ast :m-or-f))))
+
+(defmethod gen-expr :host-call [ast]
+  (gen-host-call ast))
+
 (defmethod gen-expr :default [ast]
   (println "Don't know how to gen AST:" ast))
 
@@ -98,6 +107,17 @@
                                      {:name (str ns- "/" name)}))]
     (merge fn- properties)))
 
+(defn gen-host-call [{{lib :class} :target args :args method :method}]
+  ; (:name fn-) could be simplified to just (str method), but
+  ; we do it this way to ensure the method actually comes from
+  ; where we expect it to come from
+  (let [fn-  (get-in @*libs* [lib :globals method])
+        args (map gen-expr (or args []))]
+    (expr/->Call (expr/->Gbl (:name fn-))
+                 args)))
+
+
+
 (defn gen-module [main-ns & exprs]
   (apply c/module [] (concat exprs
     [(c/fn "main" (c/fn-t [] types/Int64) [] :extern
@@ -108,12 +128,16 @@
 
 ; TODO: Garbage collection (link Boehm GC)
 (defn build-module [main-ns & asts]
-  (with-bindings {#'*globals* (atom {})
-                  #'config/*int-type* types/Int64
+  (with-bindings {#'*globals*           (atom {})
+                  #'*libs*              (atom {
+                    'clj-llvm.runtime rt/runtime-lib})
+                  #'config/*int-type*   types/Int64
                   #'config/*float-type* types/Float64
-                  #'config/*gc* nil
-                  #'config/*target* (config/default-target)}
-    (-> (apply gen-module main-ns (map gen-expr asts))
+                  #'config/*gc*         nil
+                  #'config/*target*     (config/default-target)}
+    (-> (apply gen-module main-ns (concat
+          (map gen-expr asts)
+          (rt/runtime-lib :exprs)))
         mjolnir/to-db
         (mjolnir/to-llvm-module true))))
 
