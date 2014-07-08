@@ -253,13 +253,13 @@
 
 (defn add-default-passes [pass-manager]
   (doto pass-manager
-    ; native/LLVMAddFunctionInliningPass
-    ; native/LLVMAddLoopUnrollPass
-    ; native/LLVMAddGVNPass
-    ; native/LLVMAddCFGSimplificationPass
-    ; native/LLVMAddBBVectorizePass
-    ; native/LLVMAddConstantPropagationPass
-    ; native/LLVMAddInstructionCombiningPass
+    native/LLVMAddFunctionInliningPass
+    native/LLVMAddLoopUnrollPass
+    native/LLVMAddGVNPass
+    native/LLVMAddCFGSimplificationPass
+    native/LLVMAddBBVectorizePass
+    native/LLVMAddConstantPropagationPass
+    native/LLVMAddInstructionCombiningPass
     native/LLVMAddPromoteMemoryToRegisterPass))
 
 (defn dump [module]
