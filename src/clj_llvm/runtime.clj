@@ -1,8 +1,6 @@
 (ns clj-llvm.runtime
-  (:require [mjolnir.types       :refer :all]
-            [mjolnir.expressions :as    expr]
-            [mjolnir.constructors-init])
-  (:alias c mjolnir.constructors))
+  (:require [clj-llvm.llvm       :as llvm]
+            [clj-llvm.llvm.types :as types]))
 
 (def ^:dynamic *globals*)
 
@@ -24,15 +22,27 @@
     (assert ret-type
             (str "Compiling: " name "No return type given, did "
                                     "you forget the -> type?"))
-    `(let [f# (c/fn ~(str name)
-                    (c/fn-t ~(mapv first args)
-                            ~ret-type
-                            ~variadic?)
-                    ~(mapv second args)
-                    :extern
-                    ~@body)]
-        (swap! *globals* assoc '~name f#)
-        f#)))
+
+    `(let ~(vec (mapcat #(vector %1 (llvm/param %2))
+                        (map second args)
+                        (range)))
+      (let [fn-type# (types/FnType ~(mapv first args)
+                                   ~ret-type
+                                   ~variadic?)
+            void?# (= :void (~ret-type :kind))
+            body# (vector ~@body)
+            f# (llvm/fn- ~(str name)
+                         (types/FnType ~(mapv first args)
+                                       ~ret-type
+                                       ~variadic?)
+                         :extern
+                         (when-not (empty? body#)
+                           (llvm/do- (if void?# body#
+                                                (butlast body#))
+                                     (if void?# nil
+                                                (last body#)))))]
+          (swap! *globals* assoc '~name f#)
+          f#))))
 
 (defmacro deflib [name & body]
   `(binding [*globals* (atom {})]
@@ -40,24 +50,21 @@
       (def ~name {:exprs exprs# :globals @*globals*}))))
 
 (deflib runtime-lib
-  (c-defn rand [-> Int32])
-  (c-defn srand [Int32 seed -> VoidT])
-  (c-defn time [Int64* timer -> Int64])
+  (c-defn rand [-> types/Int32])
+  (c-defn srand [types/Int32 seed -> types/VoidT])
+  (c-defn time [types/Int64* timer -> types/Int64])
 
-  (c-defn inc [Int64 x -> Int64]
-    (c/+ x (c/const 1 -> Int64)))
+  (c-defn my-rand [-> types/Int64]
+    (llvm/cast- (llvm/invoke (llvm/get-fn "rand")
+                             [])
+                types/Int64))
 
-  (c-defn my-rand [-> Int64]
-    (c/cast Int64 (expr/->Call (expr/->Gbl "rand")
-                               [])))
+  (c-defn my-srand [types/Int64 seed -> types/VoidT]
+    (llvm/invoke (llvm/get-fn "srand")
+                 [(llvm/cast- seed types/Int32)]))
 
-  (c-defn my-srand [Int64 seed -> Int64]
-    (expr/->Call (expr/->Gbl "srand")
-                 [(c/cast Int32 seed)])
-    seed)
+  (c-defn printf [types/Int8* format & more -> types/Int32])
 
-  (c-defn printf [Int8* format & more -> Int32])
-
-  (c-defn my-time [-> Int64]
-    (expr/->Call (expr/->Gbl "time")
-                 [(c/const 0 -> Int64*)])))
+  (c-defn my-time [-> types/Int64]
+    (llvm/invoke (llvm/get-fn "time")
+                             [(llvm/const types/Int64* nil)])))

@@ -6,5 +6,5 @@
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/tools.macro "0.1.2"]
                  [org.clojure/tools.analyzer "0.3.0"]
-                 [mjolnir "0.1.5"]]
+                 [net.java.dev.jna/jna "3.4.0"]]
   :main clj-llvm.compiler)

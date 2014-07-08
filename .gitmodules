@@ -1,3 +1,0 @@
-[submodule "checkouts/mjolnir"]
-	path = checkouts/mjolnir
-	url = https://github.com/kylewlacy/mjolnir.git
