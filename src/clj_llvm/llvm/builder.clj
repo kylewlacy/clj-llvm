@@ -242,12 +242,13 @@
                                   native/LLVMCodeModelDefault))
 
 (defn verify [module]
-  (let [err (native/new-pointer)
-        ok? (= 0 (native/LLVMVerifyModule module
-                                          native/LLVMPrintMessageAction
-                                          err))]
-      (assert ok? (.getString (native/value-at err) 0))
-      (native/LLVMDisposeMessage (native/value-at err)))
+  (let [error-message (native/new-pointer)
+        error?        (native/LLVMVerifyModule module
+                                               native/LLVMPrintMessageAction
+                                               error-message)]
+    (assert (not error?) (.getString (native/value-at error-message) 0))
+
+    (native/LLVMDisposeMessage (native/value-at error-message)))
   module)
 
 (defn add-default-passes [pass-manager]
