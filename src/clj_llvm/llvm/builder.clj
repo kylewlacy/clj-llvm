@@ -78,12 +78,11 @@
 
 (defmethod build-expr :fn [{:keys [name type linkage body] :as ast}]
   ; TODO: Use linkage
-  (let [fn-    (native/LLVMAddFunction *module* name (build-expr type))
-        fn-ref (native/LLVMGetNamedFunction *module* name)]
+  (let [fn- (native/LLVMAddFunction *module* name (build-expr type))]
     (native/LLVMSetFunctionCallConv fn- native/LLVMCCallConv)
     (native/LLVMSetLinkage fn- native/LLVMExternalLinkage)
     (if body
-      (binding [*current-fn* {:expr fn- :ast ast :ref fn-ref}]
+      (binding [*current-fn* {:expr fn- :ast ast}]
         (build-expr body)))
     (swap! *fns* assoc name ast)
     fn-))
