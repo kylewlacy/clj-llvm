@@ -128,8 +128,8 @@
              (analyzer/analyze-file input-file
                                     (analyzer/empty-env)))
       builder/dump
-      ; builder/verify
-      ; builder/optimize
+      builder/verify
+      builder/optimize
       (builder/to-assembly-file (str output-exe ".s"))
       (builder/build-assembly-file output-exe))
   (println "Done!"))
