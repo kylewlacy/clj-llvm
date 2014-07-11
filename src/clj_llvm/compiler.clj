@@ -127,10 +127,29 @@
     (builder/dump module)
     module))
 
+(defn verify [module options]
+  (if (options :verbose)
+    (println "Verifying module..."))
+  (builder/verify module))
+
 (defn maybe-optimize [module options]
+  (if (options :verbose)
+    (println "Optimizing..."))
   (if (options :optimize)
     (builder/optimize module)
     module))
+
+(defn to-assembly-file [module file options]
+  (when (options :verbose)
+    (println "Writing assembly...")
+    (println (str "  " file)))
+  (builder/to-assembly-file module file))
+
+(defn build-assembly-file [assembly-file exe-file options]
+  (when (options :verbose)
+    (println "Building executable...")
+    (println (str "  " exe-file)))
+  (builder/build-assembly-file assembly-file exe-file))
 
 
 
@@ -138,14 +157,15 @@
   ([module output-exe]
     (compile-module-to-file module output-exe
       {:dump     false
-       :optimize false}))
+       :optimize false
+       :verbose  false}))
   ([module output-exe options]
     (-> module
         (maybe-dump options)
-        builder/verify
+        (verify options)
         (maybe-optimize options)
-        (builder/to-assembly-file (str output-exe ".s"))
-        (builder/build-assembly-file output-exe))))
+        (to-assembly-file (str output-exe ".s") options)
+        (build-assembly-file output-exe options))))
 
 (defn compile-forms [forms main-ns output-exe]
   (compile-module-to-file
@@ -163,7 +183,8 @@
                                   (analyzer/empty-env)))
     output-exe
     {:dump     true
-     :optimize true}))
+     :optimize true
+     :verbose  true}))
 
 (defn -main [input-file main-ns output-exe & args]
   (compile-file input-file main-ns output-exe)

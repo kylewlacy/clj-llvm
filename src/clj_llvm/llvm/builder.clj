@@ -34,7 +34,7 @@
 
 (defn cast-kind [ast]
   (let [types (get-casting-types ast)
-        kinds (map :kind types)]
+        kinds (mapv :kind types)]
     (cast-kind* ast types kinds)))
 
 (defn build-cast [{:keys [expr to-type] :as ast}]
@@ -154,7 +154,7 @@
     (native/LLVMConstNull (build-expr type))
     (println "Can't build non-nil pointer from" ast)))
 
-(defmethod build-const :array [{type :type val :val}]
+(defmethod build-const :array [{:keys [type val]}]
   (let [el-type (type :el-type)
         global  (native/LLVMAddGlobal *module*
                                       (build-expr type)
@@ -274,7 +274,6 @@
   module)
 
 (defn to-assembly-file [module file]
-  (println "Emitting assembly" file)
   (let [target (create-target-machine)
         err    (native/new-pointer)]
     (when (native/LLVMTargetMachineEmitToFile target
@@ -286,5 +285,4 @@
   file)
 
 (defn build-assembly-file [assembly-file exe-file]
-  (println "Building")
   (clojure.java.shell/sh "cc" assembly-file "-o" exe-file))
