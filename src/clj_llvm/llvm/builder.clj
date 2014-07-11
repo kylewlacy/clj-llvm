@@ -1,5 +1,6 @@
 (ns clj-llvm.llvm.builder
-  (:require [clj-llvm.llvm.native :as native]))
+  (:require [clj-llvm.llvm.native :as native]
+            [slingshot.slingshot  :refer [throw+]]))
 
 (def ^:dynamic *builder*)
 (def ^:dynamic *module*)
@@ -117,8 +118,11 @@
 (defmethod build-expr :type [ast]
   (build-type ast))
 
-(defmethod build-expr :default [ast]
-  (println "Don't know how to build expression from" ast))
+(defmethod build-expr :default [{:keys [op] :as ast}]
+  (throw+
+    {:type ::unknown-expr
+     :node ast}
+    (str "Don't know how to build expression of type " op)))
 
 
 
@@ -140,9 +144,11 @@
 (defmethod build-type :void [ast]
   (native/LLVMVoidType))
 
-(defmethod build-type :default [ast]
-  (println "Don't know how to build type from" ast))
-
+(defmethod build-type :default [{:keys [kind] :as ast}]
+  (throw+
+    {:type ::unknown-type
+     :node ast}
+    (str "Don't know how to build type of kind " kind)))
 
 
 ; TODO: Signed/unsigned
@@ -152,7 +158,9 @@
 (defmethod build-const :pointer [{:keys [type val] :as ast}]
   (if (nil? val)
     (native/LLVMConstNull (build-expr type))
-    (println "Can't build non-nil pointer from" ast)))
+    (throw+ {:type ::non-nil-const-pointer
+             :node ast}
+            (str "Can't build non-nil pointer of type " type))))
 
 (defmethod build-const :array [{:keys [type val]}]
   (let [el-type (type :el-type)
@@ -165,8 +173,11 @@
     (native/LLVMSetInitializer global const)
     global))
 
-(defmethod build-const :default [ast]
-  (println "Don't know how to build const from" ast))
+(defmethod build-const :default [{:keys [type] :as ast}]
+  (throw+
+    {:type ::unknown-const
+     :node ast}
+    (str "Don't know how to build const of type " type)))
 
 
 
@@ -209,7 +220,11 @@
   :bitcast)
 
 (defmethod cast-kind* :default [ast types kinds]
-  (println "Don't know how to make cast from kinds" kinds))
+  (throw+
+    {:type ::unknown-cast
+     :types types
+     :kinds kinds}
+    (str "Don't know how to build cast from kinds " kinds)))
 
 
 

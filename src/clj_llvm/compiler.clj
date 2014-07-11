@@ -5,7 +5,8 @@
             [clj-llvm.llvm.builder :as   builder]
             [clj-llvm.llvm.types   :as    types]
             [clj-llvm.analyzer     :as    analyzer]
-            [clj-llvm.runtime      :as    rt]))
+            [clj-llvm.runtime      :as    rt]
+            [slingshot.slingshot   :refer [throw+]]))
 
 (def ^:dynamic *globals*)
 (def ^:dynamic *libs*)
@@ -70,8 +71,11 @@
 (defmethod gen-expr :host-call [ast]
   (gen-host-call ast))
 
-(defmethod gen-expr :default [ast]
-  (println "Don't know how to gen AST:" ast))
+(defmethod gen-expr :default [{:keys [op] :as ast}]
+  (throw+
+    {:type ::unkown-ast-node
+     :node ast}
+    (str "Don't know how to compile node of type " op)))
 
 
 
