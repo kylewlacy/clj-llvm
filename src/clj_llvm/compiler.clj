@@ -147,6 +147,14 @@
         (builder/to-assembly-file (str output-exe ".s"))
         (builder/build-assembly-file output-exe))))
 
+(defn compile-forms [forms main-ns output-exe]
+  (compile-module-to-file
+    (apply gen-module
+           (symbol main-ns)
+           (analyzer/analyze-forms forms
+                                   (analyzer/empty-env)))
+    output-exe))
+
 (defn compile-file [input-file main-ns output-exe]
   (compile-module-to-file
     (apply gen-module
