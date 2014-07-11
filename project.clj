@@ -7,4 +7,7 @@
                  [org.clojure/tools.macro "0.1.2"]
                  [org.clojure/tools.analyzer "0.3.0"]
                  [net.java.dev.jna/jna "3.4.0"]]
+  :profiles {:dev {:dependencies [[speclj "3.0.0"]]}}
+  :plugins [[speclj "3.0.0"]]
+  :test-paths ["spec"]
   :main clj-llvm.compiler)
