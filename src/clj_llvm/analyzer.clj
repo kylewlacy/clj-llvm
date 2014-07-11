@@ -121,6 +121,24 @@
 
 
 
+(defn analyze-forms*
+  ([forms] (analyze-forms* forms (empty-env)))
+  ([forms env]
+    (loop [unanalyzed forms
+           asts       []
+           env        env]
+      (if (empty? unanalyzed)
+        {:asts (vec asts) :env env}
+        (let [analysis (analyze* (first unanalyzed)
+                                 env)]
+          (recur (rest unanalyzed)
+                 (concat asts [(analysis :ast)])
+                 (analysis :env)))))))
+
+(defn analyze-forms [& args]
+  ((apply analyze-forms* args) :asts))
+
+
 ; http://stackoverflow.com/a/6840646/1311454
 (defn read-all [buffer]
   (let [eof (Object.)]
@@ -135,14 +153,7 @@
                     io/reader
                     java.io.PushbackReader.
                     read-all)]
-      (loop [unanalyzed forms asts [] env env]
-        (if (empty? unanalyzed)
-            {:asts (vec asts) :env env}
-            (let [analysis (analyze* (first unanalyzed)
-                                     env)]
-              (recur (rest unanalyzed)
-                     (concat asts [(analysis :ast)])
-                     (analysis :env))))))))
+      (analyze-forms* forms env))))
 
 (defn analyze-file [& args]
   ((apply analyze-file* args) :asts))
