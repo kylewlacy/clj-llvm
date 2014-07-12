@@ -26,7 +26,7 @@
   (build-const ast))
 
 (defmethod build-expr :invoke [{*fn :fn args :args}]
-  (llvm/invoke (build-expr *fn) (map build-expr args)))
+  (apply llvm/invoke (build-expr *fn) (map build-expr args)))
 
 ; TODO: Multiple methods
 (defmethod build-expr :fn [{:keys [methods]}]
@@ -102,8 +102,8 @@
   ; where we expect it to come from
   (let [fn-  (get-in @*libs* [lib :globals method])
         args (map build-expr (or args []))]
-    (llvm/invoke (llvm/get-fn (fn- :name))
-                 args)))
+    (apply llvm/invoke (llvm/get-fn (fn- :name))
+                       args)))
 
 
 
@@ -112,8 +112,7 @@
     [(llvm/fn- "main" (types/FnType [] types/Int64) :extern
       (llvm/do- []
         (llvm/invoke
-          (llvm/get-fn ((get-in @*globals* [main-ns '-main]) :name))
-          [])))])))
+          (llvm/get-fn ((get-in @*globals* [main-ns '-main]) :name)))))])))
 
 (defn build-module [main-ns & asts]
   (with-bindings {#'*globals* (atom {})

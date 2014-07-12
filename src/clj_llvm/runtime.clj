@@ -1,12 +1,12 @@
 (ns clj-llvm.runtime
-  (:require [clj-llvm.llvm       :as llvm]
-            [clj-llvm.llvm.types :as types]))
+  (:require [clj-llvm.llvm       :refer :all]
+            [clj-llvm.llvm.types :refer :all]))
 
 (def ^:dynamic *globals*)
 
 
 
-(defmacro c-defn [name args & body]
+(defmacro defn* [name args & body]
   {:pre [(even? (count args))]}
   (let [args          (partition 2 args)
         variadic-fn   (comp (partial = '&) first)
@@ -22,24 +22,26 @@
             (str "Compiling: " name "No return type given, did "
                                     "you forget the -> type?"))
 
-    `(let ~(vec (mapcat #(vector %1 (llvm/param %2))
+    `(let ~(vec (mapcat #(vector %1 (param %2))
                         (map second args)
                         (range)))
-      (let [fn-type# (types/FnType ~(mapv first args)
-                                   ~ret-type
-                                   ~variadic?)
+      (let [fn-type# (FnType ~(mapv first args)
+                             ~ret-type
+                             ~variadic?)
             void?# (= :void (~ret-type :kind))
             body# (vector ~@body)
-            f# (llvm/fn- ~(str name)
-                         (types/FnType ~(mapv first args)
-                                       ~ret-type
-                                       ~variadic?)
-                         :extern
-                         (when-not (empty? body#)
-                           (llvm/do- (if void?# body#
-                                                (butlast body#))
-                                     (if void?# nil
-                                                (last body#)))))]
+            f# (fn- ~(str name)
+                    (FnType ~(mapv first args)
+                            ~ret-type
+                            ~variadic?)
+                    :extern
+                    (when-not (empty? body#)
+                      (do- (if void?#
+                             body#
+                             (butlast body#))
+                           (if void?#
+                             nil
+                             (last body#)))))]
           (swap! *globals* assoc '~name f#)
           f#))))
 
@@ -49,21 +51,19 @@
       (def ~name {:exprs exprs# :globals @*globals*}))))
 
 (deflib runtime-lib
-  (c-defn rand [-> types/Int32])
-  (c-defn srand [types/Int32 seed -> types/VoidT])
-  (c-defn time [types/Int64* timer -> types/Int64])
+  (defn* rand [-> Int32])
+  (defn* srand [Int32 seed -> VoidT])
+  (defn* time [Int64* timer -> Int64])
 
-  (c-defn my-rand [-> types/Int64]
-    (llvm/cast- (llvm/invoke (llvm/get-fn "rand")
-                             [])
-                types/Int64))
+  (defn* my-rand [-> Int64]
+    (cast- (invoke (get-fn "rand")) Int64))
 
-  (c-defn my-srand [types/Int64 seed -> types/VoidT]
-    (llvm/invoke (llvm/get-fn "srand")
-                 [(llvm/cast- seed types/Int32)]))
+  (defn* my-srand [Int64 seed -> VoidT]
+    (invoke (get-fn "srand")
+            (cast- seed Int32)))
 
-  (c-defn printf [types/Int8* format & more -> types/Int32])
+  (defn* printf [Int8* format & more -> Int32])
 
-  (c-defn my-time [-> types/Int64]
-    (llvm/invoke (llvm/get-fn "time")
-                             [(llvm/const types/Int64* nil)])))
+  (defn* my-time [-> Int64]
+    (invoke (get-fn "time")
+            (const Int64* nil))))

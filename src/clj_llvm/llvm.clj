@@ -19,7 +19,7 @@
    :type type
    :val val})
 
-(defn invoke [fn- args]
+(defn invoke [fn- & args]
   {:op :invoke
    :fn fn-
    :args args})
