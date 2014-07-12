@@ -30,6 +30,7 @@
                              ~variadic?)
             void?# (= :void (~ret-type :kind))
             body# (vector ~@body)
+            body# (if void?# (concat body# [(ret nil)]) body#)
             f# (fn- ~(str name)
                     (FnType ~(mapv first args)
                             ~ret-type
@@ -54,8 +55,7 @@
 
   (defn* my-srand [Int64 seed -> VoidT]
     (invoke (get-fn "srand")
-            (cast- seed Int32))
-    (ret nil))
+            (cast- seed Int32)))
 
   (defn* printf [Int8* format & more -> Int32])
 
