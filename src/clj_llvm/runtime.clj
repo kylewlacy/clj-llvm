@@ -4,9 +4,8 @@
 
 (def ^:dynamic *globals*)
 
-(defn dbg [& args] (apply println args) (last args))
 
-; Identical to c/defn, but doesn't actually define a callable fn
+
 (defmacro c-defn [name args & body]
   {:pre [(even? (count args))]}
   (let [args          (partition 2 args)

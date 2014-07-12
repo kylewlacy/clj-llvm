@@ -1,159 +1,38 @@
 (ns clj-llvm.compiler
   (:require [clojure.pprint        :refer [pprint]]
             [clojure.java.io       :refer [reader]]
-            [clj-llvm.llvm         :as    llvm]
-            [clj-llvm.llvm.builder :as   builder]
-            [clj-llvm.llvm.types   :as    types]
             [clj-llvm.analyzer     :as    analyzer]
-            [clj-llvm.runtime      :as    rt]
-            [slingshot.slingshot   :refer [throw+]]))
-
-(def ^:dynamic *globals*)
-(def ^:dynamic *libs*)
-
-(defmulti gen-expr :op)
-(defmulti gen-const :type)
-
-(declare globalize-fn)
-(declare gen-host-call)
-
-(defn dbg [& args] (apply println args) (last args))
-
-
-
-
-(defmethod gen-expr :do [{:keys [statements ret]}]
-  (llvm/do- (map gen-expr statements) (gen-expr ret)))
-
-(defmethod gen-expr :const [ast]
-  (gen-const ast))
-
-(defmethod gen-expr :invoke [{*fn :fn args :args}]
-  (llvm/invoke (gen-expr *fn) (map gen-expr args)))
-
-; TODO: Multiple methods
-(defmethod gen-expr :fn [{:keys [methods]}]
-  (gen-expr (first methods)))
-
-(defmethod gen-expr :fn-method [{:keys [params body]}]
-    (llvm/fn- (str (gensym "fn"))
-              (types/FnType (repeat (count params) types/Int64)
-                            types/Int64)
-              :extern
-              (gen-expr body)))
-
-; TODO: Locals other than args
-(defmethod gen-expr :local [{:keys [arg-id]}]
-  (llvm/param arg-id))
-
-(defmethod gen-expr :def [{{name :name ns* :ns} :var init :init}]
-  (let [init* (gen-expr init)
-        fn?  (= :fn-type (-> init* :type :kind))
-        init (if fn? (globalize-fn init* name ns*)
-                     init*)]
-    (swap! *globals* assoc-in [ns* name] init)
-    (if fn?
-        init
-        (llvm/set-global (str ns* "/" name)
-                         (builder/return-type init)
-                         init))))
-
-(defmethod gen-expr :var [{{name :name ns* :ns} :var}]
-  (llvm/get-global (str ns* "/" name)))
-
-; TODO: Pass meta to LLVM (somehow?)
-(defmethod gen-expr :with-meta [{:keys [expr]}]
-  (gen-expr expr))
-
-(defmethod gen-expr :host-interop [ast]
-  (gen-host-call (assoc ast :method (ast :m-or-f))))
-
-(defmethod gen-expr :host-call [ast]
-  (gen-host-call ast))
-
-(defmethod gen-expr :default [{:keys [op] :as ast}]
-  (throw+
-    {:type ::unkown-ast-node
-     :node ast}
-    (str "Don't know how to compile node of type " op)))
-
-
-
-(defmethod gen-const :number [{:keys [val]}]
-  (llvm/const types/Int64 val))
-
-(defmethod gen-const :string [{:keys [val]}]
-  (let [char-vals (concat (mapv int val) [0])]
-    (llvm/cast- (llvm/const (types/Array types/Int8 (count char-vals))
-                            (mapv #(llvm/const types/Int8 %) char-vals))
-                types/Int8*)))
-
-
-
-(defn globalize-fn [fn- name ns-]
-  (let [extern?    (-> name meta :extern)
-        exact?     (-> name meta :exact)
-        properties (merge (if extern? {:linkage :extern}
-                                      {})
-                          (if exact? {:name (str name)}
-                                     {:name (str ns- "/" name)}))]
-    (merge fn- properties)))
-
-(defn gen-host-call [{{lib :class} :target args :args method :method}]
-  ; (:name fn-) could be simplified to just (str method), but
-  ; we do it this way to ensure the method actually comes from
-  ; where we expect it to come from
-  (let [fn-  (get-in @*libs* [lib :globals method])
-        args (map gen-expr (or args []))]
-    (llvm/invoke (llvm/get-fn (fn- :name))
-                 args)))
-
-
-
-(defn gen-module* [main-ns & exprs]
-  (apply llvm/module (gensym main-ns) (concat exprs
-    [(llvm/fn- "main" (types/FnType [] types/Int64) :extern
-      (llvm/do- []
-        (llvm/invoke
-          (llvm/get-fn ((get-in @*globals* [main-ns '-main]) :name))
-          [])))])))
-
-; TODO: Garbage collection (link Boehm GC)
-(defn gen-module [main-ns & asts]
-  (with-bindings {#'*globals* (atom {})
-                  #'*libs*    (atom {'clj-llvm.runtime rt/runtime-lib})}
-    (builder/build-module
-      (apply gen-module* main-ns (concat (rt/runtime-lib :exprs)
-                                         (mapv gen-expr asts))))))
+            [clj-llvm.llvm.builder :as    llvm-builder]
+            [clj-llvm.builder      :as    builder]))
 
 (defn maybe-dump [module options]
   (if (options :dump)
-    (builder/dump module)
+    (llvm-builder/dump module)
     module))
 
 (defn verify [module options]
   (if (options :verbose)
     (println "Verifying module..."))
-  (builder/verify module))
+  (llvm-builder/verify module))
 
 (defn maybe-optimize [module options]
   (if (options :verbose)
     (println "Optimizing..."))
   (if (options :optimize)
-    (builder/optimize module)
+    (llvm-builder/optimize module)
     module))
 
-(defn to-assembly-file [module file options]
+(defn module-to-assembly [module output-file options]
   (when (options :verbose)
     (println "Writing assembly...")
-    (println (str "  " file)))
-  (builder/to-assembly-file module file))
+    (println (str "  " output-file)))
+  (llvm-builder/module-to-assembly module output-file))
 
-(defn build-assembly-file [assembly-file exe-file options]
+(defn assembly-to-executable [assembly-file exe-file options]
   (when (options :verbose)
     (println "Building executable...")
     (println (str "  " exe-file)))
-  (builder/build-assembly-file assembly-file exe-file))
+  (llvm-builder/assembly-to-executable assembly-file exe-file))
 
 
 
@@ -168,12 +47,12 @@
         (maybe-dump options)
         (verify options)
         (maybe-optimize options)
-        (to-assembly-file (str output-exe ".s") options)
-        (build-assembly-file output-exe options))))
+        (module-to-assembly (str output-exe ".s") options)
+        (assembly-to-executable output-exe options))))
 
 (defn compile-forms [forms main-ns output-exe]
   (compile-module-to-file
-    (apply gen-module
+    (apply builder/build-module
            (symbol main-ns)
            (analyzer/analyze-forms forms
                                    (analyzer/empty-env)))
@@ -181,7 +60,7 @@
 
 (defn compile-file [input-file main-ns output-exe]
   (compile-module-to-file
-    (apply gen-module
+    (apply builder/build-module
            (symbol main-ns)
            (analyzer/analyze-file input-file
                                   (analyzer/empty-env)))

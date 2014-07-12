@@ -288,16 +288,17 @@
   (native/LLVMDumpModule module)
   module)
 
-(defn to-assembly-file [module file]
-  (let [target (create-target-machine)
-        err    (native/new-pointer)]
-    (when (native/LLVMTargetMachineEmitToFile target
-                                              module
-                                              file
-                                              native/LLVMAssemblyFile
-                                              err)
-      (assert false (.getString (native/value-at err) 0))))
-  file)
+(defn module-to-assembly [module output-file]
+  (let [target        (create-target-machine)
+        output-type   native/LLVMAssemblyFile
+        error-message (native/new-pointer)
+        error?        (native/LLVMTargetMachineEmitToFile target
+                                                          module
+                                                          output-file
+                                                          output-type
+                                                          error-message)]
+      (assert (not error?) (.getString (native/value-at error-message) 0)))
+  output-file)
 
-(defn build-assembly-file [assembly-file exe-file]
+(defn assembly-to-executable [assembly-file exe-file]
   (clojure.java.shell/sh "cc" assembly-file "-o" exe-file))

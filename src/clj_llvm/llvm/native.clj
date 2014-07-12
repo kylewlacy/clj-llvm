@@ -6,7 +6,7 @@
 
 (def ^:dynamic *lib* 'LLVM-3.4)
 
-(defn dbg [& args] (apply println args) (last args))
+; (defn dbg [& args] (apply println args) (last args))
 
 (defn get-function [s]
   `(com.sun.jna.Function/getFunction ~(name *lib*) ~(name s)))
@@ -207,23 +207,6 @@
 (defnative Integer LLVMAddLoopVectorizePass)
 (defnative Integer LLVMAddLoopUnrollPass)
 (defnative Pointer LLVMAddFunctionInliningPass)
-
-
-
-; (def ^:dynamic *module* (LLVMModuleCreateWithName "tmp"))
-; (def ^:dynamic *fn*)
-; (def ^:dynamic *locals*)
-; (def ^:dynamic *builder*)
-; (def ^:dynamic *block*)
-
-(defn init-target []
-  (LLVMLinkInJIT)
-  (LLVMLinkInInterpreter)
-  (LLVMInitializeX86TargetInfo)
-  (LLVMInitializeX86Target)
-  (LLVMInitializeX86TargetMC))
-
-(init-target)
 
 
 
@@ -485,29 +468,3 @@
          (cons (target-info nt)
                (lazy-seq
                 (target-seq nt)))))))
-
-
-(defn make-target-machine [module]
-  (let [target (LLVMGetTarget module)]
-    (LLVMCreateTargetMachine (:target (second (next (target-seq))))
-                             "i686-apple-darwin12.2.1"
-                             "core-avx-i"
-                             ""
-                             LLVMCodeGenLevelDefault
-                             LLVMRelocDefault
-                             LLVMCodeModelDefault)))
-
-
-(defn temp-file [prefix ext]
-  (let [file (java.io.File/createTempFile prefix ext)]
-    (.deleteOnExit file)
-    (.getCanonicalPath file)))
-
-
-(defn emit-to-file [module filename]
-  (let [err (new-pointer)
-        tm (make-target-machine module)]
-    (LLVMSetDataLayout module "x86_64-apple-darwin")
-    (when (LLVMTargetMachineEmitToFile tm module filename LLVMAssemblyFile err)
-      (assert false (.getString (value-at err) 0)))
-    (LLVMDisposeMessage (value-at err))))
