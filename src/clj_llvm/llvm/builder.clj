@@ -18,12 +18,9 @@
 
 
 (def kw->cast-fn
-  {:bitcast {:const native/LLVMConstBitCast
-             :vary  native/LLVMBuildBitCast}
-   :trunc   {:const native/LLVMConstTrunc
-             :vary  native/LLVMBuildTrunc}
-   :zext    {:const native/LLVMConstZExt
-             :vary  native/LLVMBuildZExt}})
+  {:bitcast native/LLVMBuildBitCast
+   :trunc   native/LLVMBuildTrunc
+   :zext    native/LLVMBuildZExt})
 
 (defn get-casting-types [{:keys [expr to-type] :as ast}]
   [(return-type expr) to-type])
@@ -47,10 +44,10 @@
         (native/LLVMTypeOf built-expr) ; Forces the expression's
                                        ; type to be initialized
                                        ; TODO: Can we do this by hand?
-        ((cast-fn :vary) *builder*
-                         built-expr
-                         (build-expr to-type)
-                         (str (gensym "cast"))))
+        (cast-fn *builder*
+                  built-expr
+                  (build-expr to-type)
+                  (str (gensym "cast"))))
       (do
         (println "NOTE: expression" ast "couldn't be casted; using as-is")
         built-expr))))
