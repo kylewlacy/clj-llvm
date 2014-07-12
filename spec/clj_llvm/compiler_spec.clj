@@ -16,25 +16,40 @@
     (clojure.java.shell/sh filename)))
 
 (describe "The compiler"
-  (it "can compile a program that returns a status code"
-    (let [program
-          '[
-            (def -main (fn* -main []
-              42))
-          ]
+  (context "supporting Clojure features"
+    (it "can use 'do'"
+      (let [program
+            '[
+              (def -main (fn* -main []
+                (. clj-llvm.runtime printf (do
+                  (. clj-llvm.runtime printf "Inside a do\n")
+                  "Returned from do"))
+                0))
+            ]
 
-          result
-          (apply compile-and-run program)]
-      (should= 42 (result :exit))))
-      
-  (it "can compile a program that calls libc functions"
-    (let [program
-          '[
-            (def -main (fn* -main []
-              (. clj-llvm.runtime printf "Hello wrold!")
-              0))
-          ]
+            result
+            (apply compile-and-run program)]
+        (should= "Inside a do\nReturned from do" (result :out)))))
+  (context "interoping with C"
+    (it "can return a status code"
+      (let [program
+            '[
+              (def -main (fn* -main []
+                42))
+            ]
 
-          result
-          (apply compile-and-run program)]
-      (should= "Hello wrold!" (result :out)))))
+            result
+            (apply compile-and-run program)]
+        (should= 42 (result :exit))))
+
+    (it "can call libc functions"
+      (let [program
+            '[
+              (def -main (fn* -main []
+                (. clj-llvm.runtime printf "Hello wrold!")
+                0))
+            ]
+
+            result
+            (apply compile-and-run program)]
+        (should= "Hello wrold!" (result :out))))))

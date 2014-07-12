@@ -54,25 +54,28 @@
 
 
 
+(defmethod build-expr :block [{:keys [statements] :as ast}]
+  (let [block (native/LLVMAppendBasicBlock (*current-fn* :expr)
+                                           (str (gensym "block")))
+        builder (native/LLVMCreateBuilder)]
+    (native/LLVMPositionBuilderAtEnd builder block)
+    (binding [*builder* builder]
+      (if statements
+        (doseq [statement statements]
+          (build-expr statement))))
+    block))
+
 (defmethod build-expr :cast [ast]
   (build-cast ast))
 
 (defmethod build-expr :const [ast]
   (build-const ast))
 
-(defmethod build-expr :do [{:keys [statements ret] :as ast}]
-  (let [block (native/LLVMAppendBasicBlock (*current-fn* :expr)
-                                           (str (gensym "do")))
-        builder (native/LLVMCreateBuilder)]
-    (native/LLVMPositionBuilderAtEnd builder block)
-    (binding [*builder* builder]
-      (when statements
-        (doseq [statement statements]
-          (build-expr statement)))
-      (if ret
-        (native/LLVMBuildRet *builder* (build-expr ret))
-        (native/LLVMBuildRetVoid *builder*)))
-    block))
+(defmethod build-expr :doall [{:keys [statements ret]}]
+  (if statements
+    (doseq [statement statements]
+      (build-expr statement)))
+  (build-expr ret))
 
 (defmethod build-expr :fn [{:keys [name type linkage body] :as ast}]
   ; TODO: Use linkage
@@ -103,8 +106,13 @@
                           (count args)
                           name)))
 
-(defmethod build-expr :param [{idx :idx}]
+(defmethod build-expr :param [{:keys [idx]}]
   (native/LLVMGetParam (*current-fn* :expr) idx))
+
+(defmethod build-expr :ret [{:keys [val]}]
+  (if val
+    (native/LLVMBuildRet *builder* (build-expr val))
+    (native/LLVMBuildRetVoid *builder*)))
 
 (defmethod build-expr :set-global [{:keys [name type init] :as ast}]
   (swap! *globals* assoc name ast)

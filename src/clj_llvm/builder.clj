@@ -19,8 +19,13 @@
 
 
 
-(defmethod build-expr :do [{:keys [statements ret]}]
-  (llvm/do- (map build-expr statements) (build-expr ret)))
+(defmethod build-expr :do [{:keys [statements ret body?]}]
+  (if body?
+    (let [ret        (llvm/ret (if ret (build-expr ret) nil))
+          statements (concat (map build-expr (remove nil? statements)) [ret])]
+      (apply llvm/block statements))
+    (let [statements (map build-expr (remove nil? (concat statements [ret])))]
+      (apply llvm/doall- statements))))
 
 (defmethod build-expr :const [ast]
   (build-const ast))
@@ -110,9 +115,10 @@
 (defn build-module* [main-ns & exprs]
   (apply llvm/module (gensym main-ns) (concat exprs
     [(llvm/fn- "main" (types/FnType [] types/Int64) :extern
-      (llvm/do- []
-        (llvm/invoke
-          (llvm/get-fn ((get-in @*globals* [main-ns '-main]) :name)))))])))
+      (llvm/block
+        (llvm/ret
+          (llvm/invoke
+            (llvm/get-fn ((get-in @*globals* [main-ns '-main]) :name))))))])))
 
 (defn build-module [main-ns & asts]
   (with-bindings {#'*globals* (atom {})

@@ -4,10 +4,13 @@
 
 
 
-(defn do- [statements ret]
-  {:op :do
-   :statements statements
-   :ret ret})
+(defn block [& statements]
+  {:op :block
+   :statements statements})
+
+(defn ret [val]
+  {:op :ret
+   :val val})
 
 (defn cast- [expr to-type]
   {:op :cast
@@ -18,6 +21,11 @@
   {:op :const
    :type type
    :val val})
+
+(defn doall- [& statements]
+  {:op :doall
+   :statements (butlast statements)
+   :ret (last statements)})
 
 (defn invoke [fn- & args]
   {:op :invoke

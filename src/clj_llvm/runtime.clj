@@ -35,13 +35,7 @@
                             ~ret-type
                             ~variadic?)
                     :extern
-                    (when-not (empty? body#)
-                      (do- (if void?#
-                             body#
-                             (butlast body#))
-                           (if void?#
-                             nil
-                             (last body#)))))]
+                    (if-not (empty? body#) (apply block body#)))]
           (swap! *globals* assoc '~name f#)
           f#))))
 
@@ -56,14 +50,15 @@
   (defn* time [Int64* timer -> Int64])
 
   (defn* my-rand [-> Int64]
-    (cast- (invoke (get-fn "rand")) Int64))
+    (ret (cast- (invoke (get-fn "rand")) Int64)))
 
   (defn* my-srand [Int64 seed -> VoidT]
     (invoke (get-fn "srand")
-            (cast- seed Int32)))
+            (cast- seed Int32))
+    (ret nil))
 
   (defn* printf [Int8* format & more -> Int32])
 
   (defn* my-time [-> Int64]
-    (invoke (get-fn "time")
-            (const Int64* nil))))
+    (ret (invoke (get-fn "time")
+                 (const Int64* nil)))))
