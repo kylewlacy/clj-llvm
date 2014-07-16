@@ -1,5 +1,6 @@
 (ns clj-llvm.llvm.module-builder
   (:require [clj-llvm.llvm.native :as    native]
+            [clojure.java.shell   :as    shell]
             [slingshot.slingshot  :refer [throw+]]))
 
 (def ^:dynamic *builder*)
@@ -305,4 +306,8 @@
   output-file)
 
 (defn assembly-to-executable [assembly-file exe-file]
-  (clojure.java.shell/sh "cc" assembly-file "-o" exe-file))
+  (let [result (shell/sh "cc" assembly-file "-o" exe-file)]
+    (if (not= (result :exit) 0)
+      (throw+ {:type ::build-failed
+               :result result}
+              (str "Compilation failed!\n" (result :err))))))
