@@ -40,10 +40,15 @@
           (swap! *globals* assoc '~name f#)
           f#))))
 
-(defmacro deflib [name & body]
+(defmacro lib [& body]
   `(binding [*globals* (atom {})]
     (let [exprs# (vector ~@body)]
-      (def ~name {:exprs exprs# :globals @*globals*}))))
+      {:exprs exprs# :globals @*globals*})))
+
+(defmacro deflib [name & body]
+  `(def ~name (lib ~@body)))
+
+
 
 (deflib runtime-lib
   (defn* rand [-> Int32])
