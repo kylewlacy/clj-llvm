@@ -16,10 +16,11 @@
   (llvm-builder/verify module))
 
 (defn maybe-optimize [module options]
-  (if (options :verbose)
-    (println "Optimizing..."))
   (if (options :optimize)
-    (llvm-builder/optimize module)
+    (do
+      (if (options :verbose)
+        (println "Optimizing..."))
+        (llvm-builder/optimize module))
     module))
 
 (defn module-to-assembly [module output-file options]
@@ -71,4 +72,5 @@
 
 (defn -main [input-file main-ns output-exe & args]
   (compile-file input-file main-ns output-exe)
-  (println "Done!"))
+  (println "Done!")
+  (System/exit 0))

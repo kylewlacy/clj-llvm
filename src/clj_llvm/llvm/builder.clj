@@ -290,7 +290,6 @@
     (add-default-passes pass-manager)
     (native/LLVMRunPassManager pass-manager module)
     (native/LLVMDisposePassManager pass-manager))
-  (native/LLVMDumpModule module)
   module)
 
 (defn module-to-assembly [module output-file]
