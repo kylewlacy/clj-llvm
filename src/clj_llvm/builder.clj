@@ -1,11 +1,11 @@
 (ns clj-llvm.builder
-  (:require [clojure.pprint        :refer [pprint]]
-            [clojure.java.io       :refer [reader]]
-            [clj-llvm.llvm         :as    llvm]
-            [clj-llvm.llvm.builder :as    builder]
-            [clj-llvm.llvm.types   :as    types]
-            [clj-llvm.runtime      :as    rt]
-            [slingshot.slingshot   :refer [throw+]]))
+  (:require [clojure.pprint               :refer [pprint]]
+            [clojure.java.io              :refer [reader]]
+            [clj-llvm.llvm                :as    llvm]
+            [clj-llvm.llvm.module-builder :as    builder]
+            [clj-llvm.llvm.types          :as    types]
+            [clj-llvm.runtime             :as    rt]
+            [slingshot.slingshot          :refer [throw+]]))
 
 (def ^:dynamic *globals*)
 (def ^:dynamic *libs*)

@@ -1,39 +1,39 @@
 (ns clj-llvm.compiler
-  (:require [clojure.pprint        :refer [pprint]]
-            [clojure.java.io       :refer [reader]]
-            [clj-llvm.analyzer     :as    analyzer]
-            [clj-llvm.llvm.builder :as    llvm-builder]
-            [clj-llvm.builder      :as    builder]))
+  (:require [clojure.pprint               :refer [pprint]]
+            [clojure.java.io              :refer [reader]]
+            [clj-llvm.analyzer            :as    analyzer]
+            [clj-llvm.llvm.module-builder :as    module-builder]
+            [clj-llvm.builder             :as    builder]))
 
 (defn maybe-dump [module options]
   (if (options :dump)
-    (llvm-builder/dump module)
+    (module-builder/dump module)
     module))
 
 (defn verify [module options]
   (if (options :verbose)
     (println "Verifying module..."))
-  (llvm-builder/verify module))
+  (module-builder/verify module))
 
 (defn maybe-optimize [module options]
   (if (options :optimize)
     (do
       (if (options :verbose)
         (println "Optimizing..."))
-        (llvm-builder/optimize module))
+        (module-builder/optimize module))
     module))
 
 (defn module-to-assembly [module output-file options]
   (when (options :verbose)
     (println "Writing assembly...")
     (println (str "  " output-file)))
-  (llvm-builder/module-to-assembly module output-file))
+  (module-builder/module-to-assembly module output-file))
 
 (defn assembly-to-executable [assembly-file exe-file options]
   (when (options :verbose)
     (println "Building executable...")
     (println (str "  " exe-file)))
-  (llvm-builder/assembly-to-executable assembly-file exe-file))
+  (module-builder/assembly-to-executable assembly-file exe-file))
 
 
 

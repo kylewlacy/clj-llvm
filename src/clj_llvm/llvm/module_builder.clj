@@ -1,5 +1,5 @@
-(ns clj-llvm.llvm.builder
-  (:require [clj-llvm.llvm.native :as native]
+(ns clj-llvm.llvm.module-builder
+  (:require [clj-llvm.llvm.native :as    native]
             [slingshot.slingshot  :refer [throw+]]))
 
 (def ^:dynamic *builder*)
