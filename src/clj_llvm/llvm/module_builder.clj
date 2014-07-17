@@ -1,9 +1,10 @@
 (ns clj-llvm.llvm.module-builder
-  (:require [clj-llvm.llvm.native :as    native]
-            [clojure.java.shell   :as    shell]
-            [slingshot.slingshot  :refer [throw+]]))
+  (:require [clojure.java.shell   :as    shell]
+            [slingshot.slingshot  :refer [throw+]]
+            [clj-llvm.llvm.native :as    native]))
 
 (def ^:dynamic *builder*)
+(def ^:dynamic *locals*)
 (def ^:dynamic *module*)
 (def ^:dynamic *current-fn*)
 (def ^:dynamic *globals*)
@@ -55,12 +56,20 @@
 
 
 
+(defmethod build-expr :alloca [{:keys [type name id]}]
+  (if-let [maybe-alloca (@*locals* id)]
+    maybe-alloca
+    (let [new-alloca (native/LLVMBuildAlloca *builder* (build-expr type) name)]
+      (swap! *locals* assoc id new-alloca)
+      new-alloca)))
+
 (defmethod build-expr :block [{:keys [statements] :as ast}]
   (let [block (native/LLVMAppendBasicBlock (*current-fn* :expr)
                                            (str (gensym "block")))
         builder (native/LLVMCreateBuilder)]
     (native/LLVMPositionBuilderAtEnd builder block)
-    (binding [*builder* builder]
+    (binding [*builder* builder
+              *locals*  (atom {})]
       (if statements
         (doseq [statement statements]
           (build-expr statement))))
@@ -95,10 +104,8 @@
 (defmethod build-expr :get-global [{:keys [name]}]
   (native/LLVMGetNamedGlobal *module* (str name)))
 
-(defmethod build-expr :invoke [ast]
-  (let [fn-       (ast :fn)
-        args      (ast :args)
-        ret-void? (= :void (-> ast return-type :kind))
+(defmethod build-expr :invoke [{fn- :fn args :args :as ast}]
+  (let [ret-void? (= :void (-> ast return-type :kind))
         name      (if ret-void? "" (str (gensym "invoke")))
         arg-ptr   (native/map-parr build-expr args)]
     (native/LLVMBuildCall *builder*
@@ -106,6 +113,9 @@
                           arg-ptr
                           (count args)
                           name)))
+
+(defmethod build-expr :load [{:keys [local]}]
+  (native/LLVMBuildLoad *builder* (build-expr local) (local :name)))
 
 (defmethod build-expr :param [{:keys [idx]}]
   (native/LLVMGetParam (*current-fn* :expr) idx))
@@ -120,6 +130,9 @@
   (let [global (native/LLVMAddGlobal *module* (build-expr type) name)]
     (native/LLVMSetInitializer global init)
     global))
+
+(defmethod build-expr :store [{:keys [local val] :as ast}]
+  (native/LLVMBuildStore *builder* (build-expr val) (build-expr local)))
 
 (defmethod build-expr :type [ast]
   (build-type ast))

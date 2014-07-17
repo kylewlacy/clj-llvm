@@ -4,6 +4,14 @@
 
 
 
+(defn alloca
+  ([type] (alloca (str (gensym "local"))))
+  ([type name]
+    {:op :alloca
+     :id (gensym "alloca")
+     :type type
+     :name name}))
+
 (defn block [& statements]
   {:op :block
    :statements statements})
@@ -32,6 +40,10 @@
    :fn fn-
    :args args})
 
+(defn load- [local]
+  {:op :load
+   :local local})
+
 (defn param [idx]
   {:op :param
    :idx idx})
@@ -49,6 +61,11 @@
    :name name
    :type type
    :init init})
+
+(defn store [local val]
+  {:op :store
+   :local local
+   :val val})
 
 (defn fn-
   ([name type linkage]
