@@ -28,7 +28,7 @@
   (build-const ast))
 
 (defmethod build-expr :invoke [{*fn :fn args :args}]
-  (apply llvm/invoke (build-expr *fn) (map build-expr args)))
+  (apply llvm/call (build-expr *fn) (map build-expr args)))
 
 ; TODO: Multiple methods
 (defmethod build-expr :fn [{:keys [methods]}]
@@ -65,16 +65,21 @@
       store-local)))
 
 (defmethod build-expr :def [{{name :name ns* :ns} :var init :init}]
-  (let [init* (build-expr init)
-        fn?  (= :fn-type (-> init* :type :kind))
-        init (if fn? (globalize-fn init* name ns*)
-                     init*)]
-    (swap! *globals* assoc-in [ns* name] init)
-    (if fn?
-        init
-        (llvm/set-global (str ns* "/" name)
-                         (builder/return-type init)
-                         init))))
+  (let [built-init  (build-expr init)
+        fn?         (= :fn-type (-> built-init :type :kind))
+        built-init  (if fn?
+                      (globalize-fn built-init name ns*)
+                      built-init)
+        global      (if fn?
+                      built-init
+                      (llvm/init-global (str ns* "/" name)
+                                        (builder/return-type built-init)
+                                        built-init))
+        load-global (if fn?
+                      global
+                      (llvm/load- global))]
+    (swap! *globals* assoc-in [ns* name] load-global)
+    global))
 
 (defmethod build-expr :var [{{name :name ns* :ns} :var :as ast}]
   (get-in @*globals* [ns* name]))
@@ -118,9 +123,10 @@
     (merge fn- properties)))
 
 (defn build-host-call [{{lib :class} :target args :args method :method}]
+  ; TODO: Throw error if fn- is nil
   (let [fn-  (get-in @*libs* [lib :globals method])
         args (map build-expr (or args []))]
-    (apply llvm/invoke fn- args)))
+    (apply llvm/call fn- args)))
 
 (defn build-block [{:keys [statements ret]}]
   (let [ret        (llvm/ret (if ret (build-expr ret) nil))
@@ -134,7 +140,7 @@
     [(llvm/fn- "main" (types/FnType [] types/Int64) :extern
       (llvm/block
         (llvm/ret
-          (llvm/invoke (get-in @*globals* [main-ns '-main])))))])))
+          (llvm/call (get-in @*globals* [main-ns '-main])))))])))
 
 (defn build-module [main-ns & asts]
   (with-bindings {#'*globals* (atom {})

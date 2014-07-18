@@ -16,9 +16,10 @@
   {:op :block
    :statements statements})
 
-(defn ret [val]
-  {:op :ret
-   :val val})
+(defn call [fn- & args]
+  {:op :call
+   :fn fn-
+   :args args})
 
 (defn cast- [expr to-type]
   {:op :cast
@@ -35,39 +36,6 @@
    :statements (butlast statements)
    :ret (last statements)})
 
-(defn invoke [fn- & args]
-  {:op :invoke
-   :fn fn-
-   :args args})
-
-(defn load- [local]
-  {:op :load
-   :local local})
-
-(defn param [idx]
-  {:op :param
-   :idx idx})
-
-(defn get-global [name]
-  {:op :get-global
-   :name name})
-
-(defn get-fn [name]
-  {:op :get-fn
-   :name name})
-
-(defn set-global [name type init]
-  {:op :set-global
-   :id (gensym "set-global")
-   :name name
-   :type type
-   :init init})
-
-(defn store [local val]
-  {:op :store
-   :local local
-   :val val})
-
 (defn fn-
   ([name type linkage]
     (fn- name type linkage nil))
@@ -80,7 +48,42 @@
        :linkage linkage
        :body body})))
 
+(defn get-global [name]
+  {:op :get-global
+   :name name})
+
+(defn get-fn [name]
+  {:op :get-fn
+   :name name})
+
+(defn init-global
+  ([name type]
+    (init-global name type nil))
+  ([name type val]
+    {:op :init-global
+     :id (gensym "global")
+     :name name
+     :type type
+     :val val}))
+
+(defn load- [var]
+  {:op :load
+   :var var})
+
 (defn module [name & exprs]
   {:op :module
    :name name
    :exprs exprs})
+
+(defn param [idx]
+  {:op :param
+   :idx idx})
+
+(defn ret [val]
+  {:op :ret
+   :val val})
+
+(defn store [var val]
+  {:op :store
+   :var var
+   :val val})

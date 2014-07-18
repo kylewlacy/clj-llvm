@@ -11,7 +11,7 @@
 (def ^:dynamic *built-values*)
 ; *built-values* contains a map from unique ID's to the raw LLVM type. The
 ; reason for this is because, in our LLVM AST, two identical nodes are meant
-; to refer to the same object. For example, :invoke's :fn field is actually
+; to refer to the same object. For example, :call's :fn field is actually
 ; the :fn node that is being invoked; naïevely rebuilding this node would
 ; create a new function, when we really want the originally built version
 
@@ -111,7 +111,7 @@
 (defmethod build-expr :get-global [{:keys [name]}]
   (native/LLVMGetNamedGlobal *module* (str name)))
 
-(defmethod build-expr :invoke [{fn- :fn args :args :as ast}]
+(defmethod build-expr :call [{fn- :fn args :args :as ast}]
   (let [ret-void? (= :void (-> ast return-type :kind))
         name      (if ret-void? "" (str (gensym "invoke")))
         arg-ptr   (native/map-parr build-expr args)]
@@ -121,8 +121,8 @@
                           (count args)
                           name)))
 
-(defmethod build-expr :load [{:keys [local]}]
-  (native/LLVMBuildLoad *builder* (build-expr local) (local :name)))
+(defmethod build-expr :load [{var- :var}]
+  (native/LLVMBuildLoad *builder* (build-expr var-) (var- :name)))
 
 (defmethod build-expr :param [{:keys [idx]}]
   (native/LLVMGetParam (*current-fn* :expr) idx))
@@ -132,16 +132,17 @@
     (native/LLVMBuildRet *builder* (build-expr val))
     (native/LLVMBuildRetVoid *builder*)))
 
-(defmethod build-expr :set-global [{:keys [name type id init] :as ast}]
+(defmethod build-expr :init-global [{:keys [name type id val] :as ast}]
   (if-let [maybe-global (@*built-values* id)]
     maybe-global
     (let [global (native/LLVMAddGlobal *module* (build-expr type) name)]
       (swap! *globals* assoc name ast)
-      (native/LLVMSetInitializer global init)
+      (if val (native/LLVMSetInitializer global (build-expr val)))
+      (swap! *built-values* assoc id global)
       global)))
 
-(defmethod build-expr :store [{:keys [local val] :as ast}]
-  (native/LLVMBuildStore *builder* (build-expr val) (build-expr local)))
+(defmethod build-expr :store [{:keys [var val]}]
+  (native/LLVMBuildStore *builder* (build-expr val) (build-expr var)))
 
 (defmethod build-expr :type [ast]
   (build-type ast))
@@ -227,7 +228,7 @@
 (defmethod return-type :get-global [{:keys [name]}]
   (-> @*globals* (get name) return-type))
 
-(defmethod return-type :invoke [{fn- :fn}]
+(defmethod return-type :call [{fn- :fn :as ast}]
   (return-type fn-))
 
 (defmethod return-type :param [{:keys [idx]}]

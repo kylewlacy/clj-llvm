@@ -44,7 +44,23 @@
 
             result
             (apply compile-and-run program)]
-        (should= "foo bar baz" (result :out)))))
+        (should= "foo bar baz" (result :out))))
+
+    (it "can compile 'def' statements"
+      (let [program
+            '[
+              (def foo 3)
+              (def bar (fn* -main [] 4))
+              (def -main (fn* -main []
+                (. clj-llvm.runtime printf "%ld %ld"
+                                           foo
+                                           (bar))
+                0))
+            ]
+
+            result
+            (apply compile-and-run program)]
+        (should= "3 4" (result :out)))))
   (context "interoping with C"
     (it "can return a status code"
       (let [program

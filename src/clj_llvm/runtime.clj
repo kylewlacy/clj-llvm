@@ -56,14 +56,14 @@
   (defn* time [Int64* timer -> Int64])
 
   (defn* my-rand [-> Int64]
-    (ret (cast- (invoke (get-fn "rand")) Int64)))
+    (ret (cast- (call (get-fn "rand")) Int64)))
 
   (defn* my-srand [Int64 seed -> VoidT]
-    (invoke (get-fn "srand")
-            (cast- seed Int32)))
+    (call (get-fn "srand")
+          (cast- seed Int32)))
 
   (defn* printf [Int8* format & more -> Int32])
 
   (defn* my-time [-> Int64]
-    (ret (invoke (get-fn "time")
-                 (const Int64* nil)))))
+    (ret (call (get-fn "time")
+               (const Int64* nil)))))
