@@ -17,7 +17,7 @@
 
 (describe "The compiler"
   (context "supporting Clojure features"
-    (it "can use 'do'"
+    (it "can compile 'do' statements"
       (let [program
             '[
               (def -main (fn* -main []
@@ -29,7 +29,22 @@
 
             result
             (apply compile-and-run program)]
-        (should= "Inside a do\nReturned from do" (result :out)))))
+        (should= "Inside a do\nReturned from do" (result :out))))
+
+    (it "can compile 'let' statements"
+      (let [program
+            '[
+              (def -main (fn* -main []
+                (let* [fmt "%s bar %s"
+                       foo "foo"
+                       baz "baz"]
+                  (. clj-llvm.runtime printf fmt foo baz))
+                0))
+            ]
+
+            result
+            (apply compile-and-run program)]
+        (should= "foo bar baz" (result :out)))))
   (context "interoping with C"
     (it "can return a status code"
       (let [program

@@ -7,6 +7,7 @@
             [slingshot.slingshot          :refer [throw+]]))
 
 (def ^:dynamic *globals*)
+(def ^:dynamic *locals*)
 (def ^:dynamic *libs*)
 
 (defmulti build-expr :op)
@@ -14,17 +15,14 @@
 
 (declare globalize-fn)
 (declare build-host-call)
+(declare build-block)
 
 
 
 
-(defmethod build-expr :do [{:keys [statements ret body?]}]
-  (if body?
-    (let [ret        (llvm/ret (if ret (build-expr ret) nil))
-          statements (concat (map build-expr (remove nil? statements)) [ret])]
-      (apply llvm/block statements))
-    (let [statements (map build-expr (remove nil? (concat statements [ret])))]
-      (apply llvm/doall- statements))))
+(defmethod build-expr :do [{:keys [statements ret]}]
+  (let [statements (map build-expr (remove nil? (concat statements [ret])))]
+    (apply llvm/doall- statements)))
 
 (defmethod build-expr :const [ast]
   (build-const ast))
@@ -41,11 +39,30 @@
               (types/FnType (repeat (count params) types/Int64)
                             types/Int64)
               :extern
-              (build-expr body)))
+              (build-block body)))
 
 ; TODO: Locals other than args
-(defmethod build-expr :local [{:keys [arg-id]}]
-  (llvm/param arg-id))
+(defmethod build-expr :local [{:keys [arg-id name] :as ast}]
+  (if arg-id
+    (llvm/param arg-id)
+    (@*locals* name)))
+
+(defmethod build-expr :let [{:keys [bindings body]}]
+  (binding [*locals* (atom {})]
+    (let [statements       (concat bindings [body])
+          built-statements (mapv build-expr statements)]
+      (apply llvm/doall- built-statements))))
+
+(defmethod build-expr :binding [{:keys [name init]}]
+  (if-let [maybe-local (@*locals* name)]
+    maybe-local
+    (let [built-init  (build-expr init)
+          type        (builder/return-type built-init)
+          new-local   (llvm/alloca type (str name))
+          store-local (llvm/store new-local built-init)
+          load-local  (llvm/load- new-local)]
+      (swap! *locals* assoc name load-local)
+      store-local)))
 
 (defmethod build-expr :def [{{name :name ns* :ns} :var init :init}]
   (let [init* (build-expr init)
@@ -104,6 +121,11 @@
   (let [fn-  (get-in @*libs* [lib :globals method])
         args (map build-expr (or args []))]
     (apply llvm/invoke fn- args)))
+
+(defn build-block [{:keys [statements ret]}]
+  (let [ret        (llvm/ret (if ret (build-expr ret) nil))
+        statements (concat (map build-expr (remove nil? statements)) [ret])]
+    (apply llvm/block statements)))
 
 
 
