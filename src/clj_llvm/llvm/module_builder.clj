@@ -4,11 +4,16 @@
             [clj-llvm.llvm.native :as    native]))
 
 (def ^:dynamic *builder*)
-(def ^:dynamic *locals*)
 (def ^:dynamic *module*)
 (def ^:dynamic *current-fn*)
 (def ^:dynamic *globals*)
 (def ^:dynamic *fns*)
+(def ^:dynamic *built-values*)
+; *built-values* contains a map from unique ID's to the raw LLVM type. The
+; reason for this is because, in our LLVM AST, two identical nodes are meant
+; to refer to the same object. For example, :invoke's :fn field is actually
+; the :fn node that is being invoked; naïevely rebuilding this node would
+; create a new function, when we really want the originally built version
 
 
 
@@ -57,10 +62,10 @@
 
 
 (defmethod build-expr :alloca [{:keys [type name id]}]
-  (if-let [maybe-alloca (@*locals* id)]
+  (if-let [maybe-alloca (@*built-values* id)]
     maybe-alloca
     (let [new-alloca (native/LLVMBuildAlloca *builder* (build-expr type) name)]
-      (swap! *locals* assoc id new-alloca)
+      (swap! *built-values* assoc id new-alloca)
       new-alloca)))
 
 (defmethod build-expr :block [{:keys [statements] :as ast}]
@@ -68,8 +73,7 @@
                                            (str (gensym "block")))
         builder (native/LLVMCreateBuilder)]
     (native/LLVMPositionBuilderAtEnd builder block)
-    (binding [*builder* builder
-              *locals*  (atom {})]
+    (binding [*builder*      builder]
       (if statements
         (doseq [statement statements]
           (build-expr statement))))
@@ -87,16 +91,19 @@
       (build-expr statement)))
   (build-expr ret))
 
-(defmethod build-expr :fn [{:keys [name type linkage body] :as ast}]
+(defmethod build-expr :fn [{:keys [name id type linkage body] :as ast}]
   ; TODO: Use linkage
-  (let [fn- (native/LLVMAddFunction *module* name (build-expr type))]
-    (native/LLVMSetFunctionCallConv fn- native/LLVMCCallConv)
-    (native/LLVMSetLinkage fn- native/LLVMExternalLinkage)
-    (if body
-      (binding [*current-fn* {:expr fn- :ast ast}]
-        (build-expr body)))
-    (swap! *fns* assoc name ast)
-    fn-))
+  (if-let [maybe-fn (@*built-values* id)]
+    maybe-fn
+    (let [new-fn (native/LLVMAddFunction *module* name (build-expr type))]
+      (native/LLVMSetFunctionCallConv new-fn native/LLVMCCallConv)
+      (native/LLVMSetLinkage new-fn native/LLVMExternalLinkage)
+      (if body
+        (binding [*current-fn* {:expr new-fn :ast ast}]
+          (build-expr body)))
+      (swap! *fns* assoc name ast)
+      (swap! *built-values* assoc id new-fn)
+      new-fn)))
 
 (defmethod build-expr :get-fn [{:keys [name]}]
   (native/LLVMGetNamedFunction *module* (str name)))
@@ -125,11 +132,13 @@
     (native/LLVMBuildRet *builder* (build-expr val))
     (native/LLVMBuildRetVoid *builder*)))
 
-(defmethod build-expr :set-global [{:keys [name type init] :as ast}]
-  (swap! *globals* assoc name ast)
-  (let [global (native/LLVMAddGlobal *module* (build-expr type) name)]
-    (native/LLVMSetInitializer global init)
-    global))
+(defmethod build-expr :set-global [{:keys [name type id init] :as ast}]
+  (if-let [maybe-global (@*built-values* id)]
+    maybe-global
+    (let [global (native/LLVMAddGlobal *module* (build-expr type) name)]
+      (swap! *globals* assoc name ast)
+      (native/LLVMSetInitializer global init)
+      global)))
 
 (defmethod build-expr :store [{:keys [local val] :as ast}]
   (native/LLVMBuildStore *builder* (build-expr val) (build-expr local)))
@@ -249,9 +258,10 @@
 
 (defn build-module [{:keys [name exprs]}]
   (let [module (native/LLVMModuleCreateWithName (str name))]
-    (binding [*module* module
-              *globals* (atom {})
-              *fns* (atom {})]
+    (binding [*module*       module
+              *globals*      (atom {})
+              *fns*          (atom {})
+              *built-values* (atom {})]
       (doseq [expr exprs]
         (build-expr expr)))
     module))

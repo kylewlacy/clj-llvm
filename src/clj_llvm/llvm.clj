@@ -58,6 +58,7 @@
 
 (defn set-global [name type init]
   {:op :set-global
+   :id (gensym "set-global")
    :name name
    :type type
    :init init})
@@ -73,6 +74,7 @@
   ([name type linkage body]
     (let [void? (= :void (-> type :ret-type :kind))]
       {:op :fn
+       :id (gensym "fn")
        :name name
        :type type
        :linkage linkage

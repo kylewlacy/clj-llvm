@@ -1,6 +1,5 @@
 (ns clj-llvm.builder
-  (:require [clojure.pprint               :refer [pprint]]
-            [clojure.java.io              :refer [reader]]
+  (:require [clojure.java.io              :refer [reader]]
             [clj-llvm.llvm                :as    llvm]
             [clj-llvm.llvm.module-builder :as    builder]
             [clj-llvm.llvm.types          :as    types]
@@ -60,8 +59,8 @@
                          (builder/return-type init)
                          init))))
 
-(defmethod build-expr :var [{{name :name ns* :ns} :var}]
-  (llvm/get-global (str ns* "/" name)))
+(defmethod build-expr :var [{{name :name ns* :ns} :var :as ast}]
+  (get-in @*globals* [ns* name]))
 
 ; TODO: Pass meta to LLVM (somehow?)
 (defmethod build-expr :with-meta [{:keys [expr]}]
@@ -102,13 +101,9 @@
     (merge fn- properties)))
 
 (defn build-host-call [{{lib :class} :target args :args method :method}]
-  ; (:name fn-) could be simplified to just (str method), but
-  ; we do it this way to ensure the method actually comes from
-  ; where we expect it to come from
   (let [fn-  (get-in @*libs* [lib :globals method])
         args (map build-expr (or args []))]
-    (apply llvm/invoke (llvm/get-fn (fn- :name))
-                       args)))
+    (apply llvm/invoke fn- args)))
 
 
 
@@ -117,12 +112,11 @@
     [(llvm/fn- "main" (types/FnType [] types/Int64) :extern
       (llvm/block
         (llvm/ret
-          (llvm/invoke
-            (llvm/get-fn ((get-in @*globals* [main-ns '-main]) :name))))))])))
+          (llvm/invoke (get-in @*globals* [main-ns '-main])))))])))
 
 (defn build-module [main-ns & asts]
   (with-bindings {#'*globals* (atom {})
                   #'*libs*    (atom {'clj-llvm.runtime rt/runtime-lib})}
     (builder/build-module
       (apply build-module* main-ns (concat (rt/runtime-lib :exprs)
-                                         (mapv build-expr asts))))))
+                                           (mapv build-expr asts))))))
