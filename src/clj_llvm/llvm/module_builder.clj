@@ -218,7 +218,7 @@
 (defmethod return-type :const [{:keys [type]}]
   type)
 
-(defmethod return-type :do [{:keys [ret]}]
+(defmethod return-type :doall [{:keys [ret]}]
   (return-type ret))
 
 (defmethod return-type :fn [{:keys [type]}]
