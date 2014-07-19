@@ -157,7 +157,7 @@
 
 
 
-(defmethod build-type :fn-type [{:keys [arg-types ret-type variadic?] :as ast}]
+(defmethod build-type :fn-type [{:keys [arg-types ret-type variadic?]}]
   (native/LLVMFunctionType (build-expr ret-type)
                            (native/map-parr build-expr arg-types)
                            (count arg-types)
@@ -212,6 +212,9 @@
 
 
 
+(defmethod return-type :alloca [{:keys [type]}]
+  (types/Pointer type))
+
 (defmethod return-type :cast [{:keys [to-type]}]
   to-type)
 
@@ -235,6 +238,9 @@
 
 (defmethod return-type :param [{:keys [idx]}]
   (nth (-> *current-fn* :ast :type :arg-types) idx))
+
+(defmethod return-type :load [{var- :var}]
+  ((return-type var-) :el-type))
 
 (defmethod return-type :type [type]
   type)
