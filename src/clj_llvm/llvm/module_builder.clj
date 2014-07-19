@@ -256,6 +256,9 @@
 (defmethod cast-kind* [:array :pointer] [ast types kinds]
   :bitcast)
 
+(defmethod cast-kind* [:pointer :pointer] [ast types kinds]
+  :bitcast)
+
 (defmethod cast-kind* :default [ast types kinds]
   (throw+
     {:type ::unknown-cast
