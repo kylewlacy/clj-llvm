@@ -40,6 +40,14 @@
           (swap! *globals* assoc '~name f#)
           f#))))
 
+(defmacro defstruct* [name & members]
+  (let [members (partition 2 members)
+        member-types (mapv first members)
+        member-names (mapv second members)]
+    `(let [struct# (StructType ~member-types '~member-names)]
+      (swap! *globals* assoc '~name struct#)
+      struct#)))
+
 (defmacro lib [symbol & body]
   `(binding [*globals* (atom {})]
     (let [exprs# (vector ~@body)]

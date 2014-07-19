@@ -1,6 +1,8 @@
 (ns clj-llvm.llvm.module-builder
   (:require [clojure.java.shell   :as    shell]
             [slingshot.slingshot  :refer [throw+]]
+            [clj-llvm.llvm        :as    llvm]
+            [clj-llvm.llvm.types  :as    types]
             [clj-llvm.llvm.native :as    native]))
 
 (def ^:dynamic *builder*)
@@ -55,9 +57,7 @@
                   built-expr
                   (build-expr to-type)
                   (str (gensym "cast"))))
-      (do
-        (println "NOTE: expression" ast "couldn't be casted; using as-is")
-        built-expr))))
+      built-expr)))
 
 
 
@@ -146,6 +146,16 @@
 (defmethod build-expr :store [{:keys [var val]}]
   (native/LLVMBuildStore *builder* (build-expr val) (build-expr var)))
 
+(defmethod build-expr :get-element-ptr [{:keys [pointer idx in-bounds?]}]
+  (let [build-fn (if in-bounds?
+                   native/LLVMBuildInBoundsGEP
+                   native/LLVMBuildGEP)]
+    (build-fn *builder*
+              (build-expr pointer)
+              (native/map-parr build-expr idx)
+              (count idx)
+              (str (gensym "gep")))))
+
 (defmethod build-expr :type [ast]
   (build-type ast))
 
@@ -162,6 +172,13 @@
                            (native/map-parr build-expr arg-types)
                            (count arg-types)
                            variadic?))
+
+(defmethod build-type :struct-type [{:keys [member-types]}]
+  (let [struct-type (native/LLVMStructType (native/map-parr build-expr
+                                                            member-types)
+                                           (count member-types)
+                                           false)]
+    struct-type))
 
 (defmethod build-type :int [{:keys [width]}]
   (native/LLVMIntType width))

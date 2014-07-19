@@ -13,9 +13,9 @@
 
 (defmacro defnative [return-type function-symbol]
   `(let [func# ~(get-function function-symbol)]
-     (defn ~function-symbol [& args#]
-      ;  (apply println ~(str function-symbol) "args:" args#)
-      ;  (dbg "  =>" (.invoke func# ~return-type (to-array args#))))))
+    (defn ~function-symbol [& args#]
+      ; (apply println ~(str function-symbol) "args:" args#)
+      ; (dbg "  =>" (.invoke func# ~return-type (to-array args#))))))
       (.invoke func# ~return-type (to-array args#)))))
 
 (defmacro defenum
@@ -129,6 +129,7 @@
 (defnative Pointer LLVMBuildStore)
 (defnative Pointer LLVMBuildArrayMalloc)
 (defnative Pointer LLVMBuildGEP)
+(defnative Pointer LLVMBuildInBoundsGEP)
 (defnative Pointer LLVMBuildBitCast)
 (defnative Pointer LLVMBuildCast)
 (defnative Pointer LLVMConstString)

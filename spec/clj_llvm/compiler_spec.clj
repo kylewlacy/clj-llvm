@@ -1,6 +1,8 @@
 (ns clj-llvm.compiler-spec
   (:require [speclj.core :refer :all]
-            [clj-llvm.compiler :refer :all]))
+            [clj-llvm.compiler :refer :all]
+            [clj-llvm.runtime :refer :all]
+            [clj-llvm.llvm.types :as types]))
 
 (defn get-temp-filename []
   (let [temp-file
@@ -87,4 +89,27 @@
 
             result
             (compile-and-run program)]
-        (should= "Hello wrold!" (result :out))))))
+        (should= "Hello wrold!" (result :out))))
+
+    (it "can create and use structs"
+      (let [test-lib
+            (lib 'test-lib
+              (defstruct* TestStruct
+                types/Int64 foo
+                types/Int64 bar
+                types/Int8* baz))
+
+            program
+            '[
+              (def -main (fn* -main []
+                (let* [struct (. test-lib TestStruct 3 4 "the-baz")]
+                  (. clj-llvm.runtime printf "%ld %ld %s"
+                                             (. struct foo)
+                                             (. struct bar)
+                                             (. struct baz)))
+                0))
+            ]
+
+            result
+            (compile-and-run program test-lib)]
+        (should= "3 4 the-baz" (result :out))))))

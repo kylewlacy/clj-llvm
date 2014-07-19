@@ -13,9 +13,12 @@
 (defmulti build-expr :op)
 (defmulti build-const :type)
 
-(declare globalize-fn)
-(declare build-host-call)
-(declare build-block)
+(declare globalize-fn
+         build-host-interop
+         build-host-call-fn
+         build-host-struct-init
+         build-host-struct-access
+         build-block)
 
 
 
@@ -89,10 +92,10 @@
   (build-expr expr))
 
 (defmethod build-expr :host-interop [ast]
-  (build-host-call (assoc ast :method (ast :m-or-f))))
+  (build-host-interop (assoc ast :method (ast :m-or-f))))
 
 (defmethod build-expr :host-call [ast]
-  (build-host-call ast))
+  (build-host-interop ast))
 
 (defmethod build-expr :default [{:keys [op] :as ast}]
   (throw+
@@ -122,11 +125,47 @@
                                      {:name (str ns- "/" name)}))]
     (merge fn- properties)))
 
-(defn build-host-call [{{lib :class} :target args :args method :method}]
+(defn build-host-call-fn [{{lib :class} :target args :args method :method}]
   ; TODO: Throw error if fn- is nil
   (let [fn-  (get-in @*libs* [lib :globals method])
         args (map build-expr (or args []))]
     (apply llvm/call fn- args)))
+
+(defn build-host-struct-init [{:keys [target args method] :as ast}]
+  (let [lib          (target :class)
+        struct-type  (get-in @*libs* [lib :globals method])
+        args         (map build-expr (or args []))
+        struct       (llvm/alloca struct-type)
+        member-types (struct-type :member-types)
+        members      (map #(llvm/get-element-ptr-in-bounds
+                            struct
+                            (llvm/const types/Int32 0)
+                            (llvm/const types/Int32 %))
+                          (range 0 (count member-types)))
+        casts        (map llvm/cast- args member-types)]
+    (apply llvm/doall- (concat (map llvm/store members casts)
+                               [struct]))))
+
+(defn build-host-struct-access [{:keys [target args method] :as ast}]
+  (let [args          (map build-expr (or args []))
+        struct        (build-expr target)
+        type          (builder/return-type struct)
+        idx           (get-in type [:el-type :idx method])]
+    (llvm/load-
+      (llvm/get-element-ptr-in-bounds
+        struct
+        (llvm/const types/Int32 0)
+        (llvm/const types/Int32 idx)))))
+
+(defn build-host-interop [{:keys [target args method] :as ast}]
+  (let [lib           (target :class)
+        callee        (get-in @*libs* [lib :globals method])
+        build-struct? (= :struct-type (get callee :kind))
+        get-member?   (= :local (target :op))] ; TODO: Other than local
+    (cond
+      build-struct? (build-host-struct-init ast)
+      get-member?   (build-host-struct-access ast)
+      :else         (build-host-call-fn ast))))
 
 (defn build-block [{:keys [statements ret]}]
   (let [ret        (llvm/ret (if ret (build-expr ret) nil))

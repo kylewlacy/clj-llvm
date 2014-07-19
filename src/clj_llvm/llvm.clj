@@ -48,6 +48,14 @@
        :linkage linkage
        :body body})))
 
+(defn get-element-ptr [pointer & idx]
+  {:op :get-element-ptr
+   :pointer pointer
+   :idx idx})
+
+(defn get-element-ptr-in-bounds [pointer & idx]
+  (assoc (apply get-element-ptr pointer idx) :in-bounds? true))
+
 (defn get-global [name]
   {:op :get-global
    :name name})

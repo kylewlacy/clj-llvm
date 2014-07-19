@@ -30,6 +30,16 @@
      :ret-type ret-type
      :variadic? variadic?}))
 
+(defn StructType
+  ([member-types]
+    (StructType member-types nil))
+  ([member-types member-names]
+    {:op :type
+     :kind :struct-type
+     :member-types member-types
+     :member-names member-names
+     :idx (apply hash-map (mapcat vector member-names (range)))}))
+
 
 
 (def Int8 (Int 8))
