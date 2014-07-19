@@ -5,7 +5,7 @@
 
 
 (defn alloca
-  ([type] (alloca (str (gensym "local"))))
+  ([type] (alloca type (str (gensym "local"))))
   ([type name]
     {:op :alloca
      :id (gensym "alloca")
