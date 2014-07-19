@@ -122,7 +122,9 @@
                           name)))
 
 (defmethod build-expr :load [{var- :var}]
-  (native/LLVMBuildLoad *builder* (build-expr var-) (var- :name)))
+  (native/LLVMBuildLoad *builder*
+                        (build-expr var-)
+                        (or (var- :name) (str (gensym "load")))))
 
 (defmethod build-expr :param [{:keys [idx]}]
   (native/LLVMGetParam (*current-fn* :expr) idx))
