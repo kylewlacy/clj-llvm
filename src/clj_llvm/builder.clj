@@ -135,16 +135,23 @@
 
 
 
-(defn build-module* [main-ns & exprs]
+(defn build-module* [main-ns exprs]
   (apply llvm/module (gensym main-ns) (concat exprs
     [(llvm/fn- "main" (types/FnType [] types/Int64) :extern
       (llvm/block
         (llvm/ret
           (llvm/call (get-in @*globals* [main-ns '-main])))))])))
 
-(defn build-module [main-ns & asts]
-  (with-bindings {#'*globals* (atom {})
-                  #'*libs*    (atom {'clj-llvm.runtime rt/runtime-lib})}
-    (builder/build-module
-      (apply build-module* main-ns (concat (rt/runtime-lib :exprs)
-                                           (mapv build-expr asts))))))
+(defn build-module
+  ([main-ns asts]
+    (build-module main-ns asts nil))
+  ([main-ns asts libs]
+    (binding [*globals* (atom {})
+              *libs*    (atom (apply hash-map
+                                     (mapcat #(vector (% :name) %)
+                                             (concat [rt/runtime-lib] libs))))]
+
+      (builder/build-module
+        (build-module* main-ns
+                       (flatten (concat (mapcat :exprs (vals @*libs*))
+                                        (mapv build-expr asts))))))))

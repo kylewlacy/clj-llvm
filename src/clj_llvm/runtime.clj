@@ -40,17 +40,17 @@
           (swap! *globals* assoc '~name f#)
           f#))))
 
-(defmacro lib [& body]
+(defmacro lib [symbol & body]
   `(binding [*globals* (atom {})]
     (let [exprs# (vector ~@body)]
-      {:exprs exprs# :globals @*globals*})))
+      {:name ~symbol :exprs exprs# :globals @*globals*})))
 
-(defmacro deflib [name & body]
-  `(def ~name (lib ~@body)))
+(defmacro deflib [name symbol & body]
+  `(def ~name (lib ~symbol ~@body)))
 
 
 
-(deflib runtime-lib
+(deflib runtime-lib 'clj-llvm.runtime
   (defn* rand [-> Int32])
   (defn* srand [Int32 seed -> VoidT])
   (defn* time [Int64* timer -> Int64])

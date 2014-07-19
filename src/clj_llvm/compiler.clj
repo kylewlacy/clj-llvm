@@ -51,20 +51,22 @@
         (module-to-assembly (str output-exe ".s") options)
         (assembly-to-executable output-exe options))))
 
-(defn compile-forms [forms main-ns output-exe]
-  (compile-module-to-file
-    (apply builder/build-module
-           (symbol main-ns)
-           (analyzer/analyze-forms forms
-                                   (analyzer/empty-env)))
-    output-exe))
+(defn compile-forms
+  ([forms main-ns output-exe]
+    (compile-forms forms nil main-ns output-exe))
+  ([forms libs main-ns output-exe]
+    (compile-module-to-file
+      (builder/build-module (symbol main-ns)
+                            (analyzer/analyze-forms forms
+                                                    (analyzer/empty-env))
+                            libs)
+      output-exe)))
 
 (defn compile-file [input-file main-ns output-exe]
   (compile-module-to-file
-    (apply builder/build-module
-           (symbol main-ns)
-           (analyzer/analyze-file input-file
-                                  (analyzer/empty-env)))
+    (builder/build-module (symbol main-ns)
+                          (analyzer/analyze-file input-file
+                                                 (analyzer/empty-env)))
     output-exe
     {:dump     true
      :optimize true

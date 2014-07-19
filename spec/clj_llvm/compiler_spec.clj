@@ -10,10 +10,13 @@
     (.deleteOnExit temp-file)
     (.toString temp-file)))
 
-(defn compile-and-run [& forms]
-  (let [filename (get-temp-filename)]
-    (compile-forms forms 'user filename)
-    (clojure.java.shell/sh filename)))
+(defn compile-and-run
+  ([program]
+    (compile-and-run program nil))
+  ([program lib]
+    (let [filename (get-temp-filename)]
+      (compile-forms program (if lib [lib] nil) 'user filename)
+      (clojure.java.shell/sh filename))))
 
 (describe "The compiler"
   (context "supporting Clojure features"
@@ -28,7 +31,7 @@
             ]
 
             result
-            (apply compile-and-run program)]
+            (compile-and-run program)]
         (should= "Inside a do\nReturned from do" (result :out))))
 
     (it "can compile 'let' statements"
@@ -43,7 +46,7 @@
             ]
 
             result
-            (apply compile-and-run program)]
+            (compile-and-run program)]
         (should= "foo bar baz" (result :out))))
 
     (it "can compile 'def' statements"
@@ -59,8 +62,9 @@
             ]
 
             result
-            (apply compile-and-run program)]
+            (compile-and-run program)]
         (should= "3 4" (result :out)))))
+
   (context "interoping with C"
     (it "can return a status code"
       (let [program
@@ -70,7 +74,7 @@
             ]
 
             result
-            (apply compile-and-run program)]
+            (compile-and-run program)]
         (should= 42 (result :exit))))
 
     (it "can call libc functions"
@@ -82,5 +86,5 @@
             ]
 
             result
-            (apply compile-and-run program)]
+            (compile-and-run program)]
         (should= "Hello wrold!" (result :out))))))
