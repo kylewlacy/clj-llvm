@@ -1,7 +1,8 @@
 (ns clj-llvm.compiler-spec
-  (:require [speclj.core :refer :all]
-            [clj-llvm.compiler :refer :all]
-            [clj-llvm.runtime :refer :all]
+  (:require [speclj.core         :refer :all]
+            [clj-llvm.compiler   :refer :all]
+            [clj-llvm.runtime    :refer :all]
+            [clj-llvm.llvm       :as llvm]
             [clj-llvm.llvm.types :as types]))
 
 (defn get-temp-filename []
@@ -90,6 +91,24 @@
             result
             (compile-and-run program)]
         (should= "Hello wrold!" (result :out))))
+
+    (it "can call custom LLVM functions"
+      (let [test-lib
+            (lib 'test-lib
+              (defn* test-fn [types/Int8* x types/Int64 y -> types/Int64]
+                (llvm/ret y)))
+
+            program
+            '[
+              (def -main (fn* -main []
+                (. clj-llvm.runtime printf "%ld"
+                                           (. test-lib test-fn "Hello" 4))
+                0))
+            ]
+
+            result
+            (compile-and-run program test-lib)]
+          (should= "4" (result :out))))
 
     (it "can create and use structs"
       (let [test-lib
