@@ -1,6 +1,5 @@
 (ns clj-llvm.llvm.module-builder
   (:require [clojure.java.shell   :as    shell]
-            [slingshot.slingshot  :refer [throw+]]
             [clj-llvm.llvm        :as    llvm]
             [clj-llvm.llvm.types  :as    types]
             [clj-llvm.llvm.native :as    native]))
@@ -160,10 +159,9 @@
   (build-type ast))
 
 (defmethod build-expr :default [{:keys [op] :as ast}]
-  (throw+
-    {:type ::unknown-expr
-     :node ast}
-    (str "Don't know how to build expression of type " op)))
+  (throw (ex-info (str "Don't know how to build LLVM expression of type " op)
+                  {:type ::unknown-expr
+                   :node ast})))
 
 
 
@@ -193,10 +191,9 @@
   (native/LLVMVoidType))
 
 (defmethod build-type :default [{:keys [kind] :as ast}]
-  (throw+
-    {:type ::unknown-type
-     :node ast}
-    (str "Don't know how to build type of kind " kind)))
+  (throw (ex-info (str "Don't know how to build LLVM type of kind " kind)
+                  {:type ::unknown-type
+                   :node ast})))
 
 
 ; TODO: Signed/unsigned
@@ -206,9 +203,9 @@
 (defmethod build-const :pointer [{:keys [type val] :as ast}]
   (if (nil? val)
     (native/LLVMConstNull (build-expr type))
-    (throw+ {:type ::non-nil-const-pointer
-             :node ast}
-            (str "Can't build non-nil pointer of type " type))))
+    (throw (ex-info (str "Can't build non-nil LLVM pointer of type " type)
+                    {:type ::non-nil-const-pointer
+                     :node ast}))))
 
 (defmethod build-const :array [{:keys [type val]}]
   (let [el-type (type :el-type)
@@ -221,11 +218,10 @@
     (native/LLVMSetInitializer global const)
     global))
 
-(defmethod build-const :default [{:keys [type] :as ast}]
-  (throw+
-    {:type ::unknown-const
-     :node ast}
-    (str "Don't know how to build const of type " type)))
+(defmethod build-const :default [{{kind :kind} :type :as ast}]
+  (throw (ex-info (str "Don't know how to build LLVM const of type kind " kind)
+                  {:type ::unknown-const
+                   :node ast})))
 
 
 
@@ -277,11 +273,10 @@
   :bitcast)
 
 (defmethod cast-kind* :default [ast types kinds]
-  (throw+
-    {:type ::unknown-cast
-     :types types
-     :kinds kinds}
-    (str "Don't know how to build cast from kinds " kinds)))
+  (throw (ex-info (str "Don't know how to build cast from kinds " kinds)
+                  {:type ::unknown-cast
+                   :types types
+                   :kinds kinds})))
 
 
 
@@ -377,22 +372,28 @@
   (let [command (concat ["gcc" "-dynamiclib" "-o" lib-file] object-files)
         result (apply shell/sh command)]
     (if (not= (result :exit) 0)
-      (throw+ {:type ::build-failed
-               :result result}
-              (str "Compilation failed!\n" (result :err))))))
+      (throw (ex-info (str "Compiling objects to lib failed!\n" (result :err))
+                      {:type    ::build-failed
+                       :objects object-files
+                       :lib     lib-file
+                       :result  result})))))
 
 (defn objects-to-executable [object-files exe-file]
   (let [command (concat ["gcc" "-o" exe-file] object-files)
         result (apply shell/sh command)]
     (if (not= (result :exit) 0)
-      (throw+ {:type ::build-failed
-               :result result}
-              (str "Compilation failed!\n" (result :err)))))
+      (throw (ex-info (str "Compiling objects to exe failed!\n" (result :err))
+                      {:type    ::build-failed
+                       :objects object-files
+                       :exe     exe-file
+                       :result  result}))))
   exe-file)
 
 (defn assembly-to-executable [assembly-file exe-file]
   (let [result (shell/sh "cc" assembly-file "-o" exe-file)]
     (if (not= (result :exit) 0)
-      (throw+ {:type ::build-failed
-               :result result}
-              (str "Compilation failed!\n" (result :err))))))
+      (throw (ex-info (str "Compiling assembly to exe failed!\n" (result :err))
+                      {:type     ::build-failed
+                       :assembly assembly-file
+                       :exe      exe-file
+                       :result   result})))))

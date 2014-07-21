@@ -3,8 +3,7 @@
             [clj-llvm.llvm                :as    llvm]
             [clj-llvm.llvm.module-builder :as    builder]
             [clj-llvm.llvm.types          :as    types]
-            [clj-llvm.runtime             :as    rt]
-            [slingshot.slingshot          :refer [throw+]]))
+            [clj-llvm.runtime             :as    rt]))
 
 (def ^:dynamic *globals*)
 (def ^:dynamic *locals*)
@@ -101,10 +100,9 @@
   (build-host-interop ast))
 
 (defmethod build-expr :default [{:keys [op] :as ast}]
-  (throw+
-    {:type ::unkown-ast-node
-     :node ast}
-    (str "Don't know how to compile node of type " op)))
+  (throw (ex-info (str "Don't know how to compile node of type " op)
+                  {:type ::unkown-ast-node
+                   :node ast})))
 
 
 
