@@ -345,9 +345,13 @@
     (native/LLVMDisposePassManager pass-manager))
   module)
 
-(defn module-to-assembly [module output-file]
+(def kw->file-type
+  {:assembly-file native/LLVMAssemblyFile
+   :object-file   native/LLVMObjectFile})
+
+(defn module-to-file-type [module file-type output-file]
   (let [target        (create-target-machine)
-        output-type   native/LLVMAssemblyFile
+        output-type   (kw->file-type file-type)
         error-message (native/new-pointer)
         error?        (native/LLVMTargetMachineEmitToFile target
                                                           module
@@ -356,6 +360,29 @@
                                                           error-message)]
       (assert (not error?) (.getString (native/value-at error-message) 0)))
   output-file)
+
+(defn module-to-object [module output-file]
+  (module-to-file-type module :object-file output-file))
+
+(defn module-to-assembly [module output-file]
+  (module-to-file-type module :assembly-file output-file))
+
+(defn objects-to-lib [object-files lib-file]
+  (let [command (concat ["gcc" "-dynamiclib" "-o" lib-file] object-files)
+        result (apply shell/sh command)]
+    (if (not= (result :exit) 0)
+      (throw+ {:type ::build-failed
+               :result result}
+              (str "Compilation failed!\n" (result :err))))))
+
+(defn objects-to-executable [object-files exe-file]
+  (let [command (concat ["gcc" "-o" exe-file] object-files)
+        result (apply shell/sh command)]
+    (if (not= (result :exit) 0)
+      (throw+ {:type ::build-failed
+               :result result}
+              (str "Compilation failed!\n" (result :err)))))
+  exe-file)
 
 (defn assembly-to-executable [assembly-file exe-file]
   (let [result (shell/sh "cc" assembly-file "-o" exe-file)]
