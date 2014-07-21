@@ -25,17 +25,19 @@
         (module-builder/optimize module))
     module))
 
-(defn module-to-assembly [module output-file options]
+(defn module-to-object [module output-file options]
   (when (options :verbose)
-    (println "Writing assembly...")
+    (println "Writing object file...")
     (println (str "  " output-file)))
-  (module-builder/module-to-assembly module output-file))
+  (module-builder/module-to-object module output-file))
 
-(defn assembly-to-executable [assembly-file exe-file options]
+(defn objects-to-executable [objects output-exe options]
   (when (options :verbose)
-    (println "Building executable...")
-    (println (str "  " exe-file)))
-  (module-builder/assembly-to-executable assembly-file exe-file))
+    (println "Compiling objects to executable...")
+    (doseq [object objects]
+      (println (str "  " object)))
+    (println "  =>" output-exe))
+  (module-builder/objects-to-executable objects output-exe))
 
 
 
@@ -55,7 +57,7 @@
         (maybe-dump options)
         (verify options)
         (maybe-optimize options)
-        (module-builder/module-to-object (get-temp-filename)))))
+        (module-to-object (get-temp-filename) options))))
 
 (defn compile-modules-to-exe
   ([modules output-exe]
@@ -63,9 +65,10 @@
                                                 :optimize false
                                                 :verbose  false}))
   ([modules output-exe options]
-    (module-builder/objects-to-executable
-      (map compile-module-to-object modules (repeat options))
-      output-exe)))
+    (objects-to-executable
+      (mapv compile-module-to-object modules (repeat options))
+      output-exe
+      options)))
 
 (defn compile-forms
   ([forms main-ns output-exe]
