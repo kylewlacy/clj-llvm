@@ -2,6 +2,8 @@
   (:require [clj-llvm.llvm.native :as native]
             [clj-llvm.llvm.types  :as types]))
 
+(defmulti declaration-for :op)
+
 
 
 (defn alloca
@@ -95,3 +97,11 @@
   {:op :store
    :var var
    :val val})
+
+
+
+(defmethod declaration-for :fn [fn-]
+  (assoc fn- :body nil))
+
+(defmethod declaration-for :init-global [global]
+  (assoc global :val nil))
