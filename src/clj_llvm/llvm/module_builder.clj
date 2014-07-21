@@ -305,8 +305,8 @@
   (native/LLVMInitializeX86TargetMC)
   (native/LLVMInitializeX86AsmPrinter)
   (native/LLVMInitializeX86AsmParser)
-  (native/LLVMCreateTargetMachine ((find-llvm-target-by-name "x86-64") :target)
-                                  "x86_64-apple-darwin13.2.0"
+  (native/LLVMCreateTargetMachine (-> (native/target-seq) first :target)
+                                  (native/LLVMGetDefaultTargetTriple)
                                   "generic"
                                   ""
                                   native/LLVMCodeGenLevelDefault
