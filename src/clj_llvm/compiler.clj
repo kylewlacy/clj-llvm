@@ -37,36 +37,52 @@
 
 
 
-(defn compile-module-to-file
-  ([module output-exe]
-    (compile-module-to-file module output-exe
-      {:dump     false
-       :optimize false
-       :verbose  false}))
-  ([module output-exe options]
+
+
+(defn get-temp-filename []
+  (let [temp-file
+          (java.io.File/createTempFile (str (gensym "temp"))
+                                       nil
+                                       nil)]
+    (.deleteOnExit temp-file)
+    (.toString temp-file)))
+
+(defn compile-module-to-object
+  ([module options]
     (-> module
         (maybe-dump options)
         (verify options)
         (maybe-optimize options)
-        (module-to-assembly (str output-exe ".s") options)
-        (assembly-to-executable output-exe options))))
+        (module-builder/module-to-object (get-temp-filename)))))
+
+(defn compile-modules-to-exe
+  ([modules output-exe]
+    (compile-modules-to-exe modules output-exe {:dump     false
+                                                :optimize false
+                                                :verbose  false}))
+  ([modules output-exe options]
+    (module-builder/objects-to-executable
+      (map compile-module-to-object modules (repeat options))
+      output-exe)))
 
 (defn compile-forms
   ([forms main-ns output-exe]
     (compile-forms forms nil main-ns output-exe))
   ([forms libs main-ns output-exe]
-    (compile-module-to-file
-      (builder/build-module (symbol main-ns)
-                            (analyzer/analyze-forms forms
-                                                    (analyzer/empty-env))
-                            libs)
+    (compile-modules-to-exe
+      (conj (map builder/build-lib-to-module libs (repeat libs))
+            (builder/build-asts-to-module main-ns
+                                          (analyzer/analyze-forms forms)
+                                          libs)
+            (builder/build-entry-module main-ns))
       output-exe)))
 
 (defn compile-file [input-file main-ns output-exe]
-  (compile-module-to-file
-    (builder/build-module (symbol main-ns)
-                          (analyzer/analyze-file input-file
-                                                 (analyzer/empty-env)))
+  (compile-modules-to-exe
+    (conj (map builder/build-lib-to-module builder/default-libs)
+          (builder/build-asts-to-module main-ns
+                                        (analyzer/analyze-file input-file))
+          (builder/build-entry-module main-ns))
     output-exe
     {:dump     true
      :optimize true

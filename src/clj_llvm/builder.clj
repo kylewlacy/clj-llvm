@@ -10,6 +10,9 @@
 (def ^:dynamic *locals*)
 (def ^:dynamic *libs*)
 
+(def ^:dynamic default-libs
+  [rt/runtime-lib])
+
 (defmulti build-expr :op)
 (defmulti build-const :type)
 
@@ -172,25 +175,43 @@
         statements (concat (map build-expr (remove nil? statements)) [ret])]
     (apply llvm/block statements)))
 
+(defn libs->hash-map [libs]
+  (apply hash-map (mapcat #(vector (% :name) %) libs)))
 
-
-(defn build-module* [main-ns exprs]
-  (apply llvm/module (gensym main-ns) (concat exprs
-    [(llvm/fn- "main" (types/FnType [] types/Int64) :extern
-      (llvm/block
-        (llvm/ret
-          (llvm/call (get-in @*globals* [main-ns '-main])))))])))
-
-(defn build-module
+(defn build-asts-to-module
   ([main-ns asts]
-    (build-module main-ns asts nil))
+    (build-asts-to-module main-ns asts nil))
   ([main-ns asts libs]
     (binding [*globals* (atom {})
-              *libs*    (atom (apply hash-map
-                                     (mapcat #(vector (% :name) %)
-                                             (concat [rt/runtime-lib] libs))))]
-
+              *libs*    (atom (libs->hash-map (concat default-libs
+                                                      libs)))]
       (builder/build-module
-        (build-module* main-ns
-                       (flatten (concat (mapcat :exprs (vals @*libs*))
-                                        (mapv build-expr asts))))))))
+        (apply llvm/module main-ns
+                       (flatten (concat (map :decls (vals @*libs*))
+                                        (map build-expr asts))))))))
+
+(defn build-lib-to-module
+  ([lib]
+    (build-lib-to-module lib nil))
+  ([lib other-libs]
+    (binding [*globals* (atom {})
+              *libs*    (atom (apply hash-map
+                                     (mapcat #(vector (% name) %)
+                                             (concat default-libs
+                                                     other-libs))))]
+      (builder/build-module
+        (apply llvm/module (lib :name) (lib :exprs))))))
+
+(defn build-entry-module
+  ([main-ns]
+    (builder/build-module
+      (apply llvm/module "_entry_"
+        [
+          (llvm/fn- (str main-ns "/-main")
+                    (types/FnType [] types/Int64)
+                    :extern)
+          (llvm/fn- "main" (types/FnType [] types/Int64) :extern
+            (llvm/block
+              (llvm/ret
+                (llvm/call (llvm/get-fn (str main-ns "/-main"))))))
+        ]))))

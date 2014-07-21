@@ -5,14 +5,6 @@
             [clj-llvm.llvm       :as llvm]
             [clj-llvm.llvm.types :as types]))
 
-(defn get-temp-filename []
-  (let [temp-file
-          (java.io.File/createTempFile (str (gensym "temp"))
-                                       nil
-                                       nil)]
-    (.deleteOnExit temp-file)
-    (.toString temp-file)))
-
 (defn compile-and-run
   ([program]
     (compile-and-run program nil))
