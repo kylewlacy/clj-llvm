@@ -89,6 +89,7 @@
 (defnative Integer LLVMAddTargetData)
 (defnative Integer LLVMRunPassManager)
 (defnative Integer LLVMDumpModule)
+(defnative Pointer LLVMPrintModuleToString)
 (defnative Integer LLVMDisposePassManager)
 (defnative Integer LLVMDisposeExecutionEngine)
 (defnative Integer LLVMBuildRet)

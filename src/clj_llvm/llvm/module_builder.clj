@@ -338,6 +338,12 @@
   (native/LLVMDumpModule module)
   module)
 
+(defn module-to-ir-string [module]
+  (let [ir  (native/LLVMPrintModuleToString module)
+        str (.getString ir 0)]
+    (native/LLVMDisposeMessage ir)
+    str))
+
 (defn optimize [module]
   (let [pass-manager (native/LLVMCreatePassManager)]
     (add-default-passes pass-manager)

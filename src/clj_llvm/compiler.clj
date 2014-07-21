@@ -1,14 +1,16 @@
 (ns clj-llvm.compiler
-  (:require [clojure.pprint               :refer [pprint]]
+  (:require [clojure.string               :as    str]
             [clojure.java.io              :refer [reader]]
             [clj-llvm.analyzer            :as    analyzer]
             [clj-llvm.llvm.module-builder :as    module-builder]
             [clj-llvm.builder             :as    builder]))
 
 (defn maybe-dump [module options]
-  (if (options :dump)
-    (module-builder/dump module)
-    module))
+  (when (options :dump)
+    (let [ir    (module-builder/module-to-ir-string module)
+          lines (str/split-lines ir)]
+      (println (str/join "\n" (map #(str "  " %) lines)))))
+  module)
 
 (defn verify [module options]
   (if (options :verbose)
