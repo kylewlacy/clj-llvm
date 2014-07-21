@@ -3,6 +3,7 @@
             [clj-llvm.llvm.types :refer :all]))
 
 (def ^:dynamic *globals*)
+(def ^:dynamic *decls*)
 
 
 
@@ -31,14 +32,16 @@
             void?# (= :void (~ret-type :kind))
             body# (vector ~@body)
             body# (if void?# (concat body# [(ret nil)]) body#)
-            f# (fn- ~(str name)
-                    (FnType ~(mapv first args)
-                            ~ret-type
-                            ~variadic?)
+            fn#   (fn- ~(str name)
+                       (FnType ~(mapv first args)
+                               ~ret-type
+                               ~variadic?)
                     :extern
-                    (if-not (empty? body#) (apply block body#)))]
-          (swap! *globals* assoc '~name f#)
-          f#))))
+                    (if-not (empty? body#) (apply block body#)))
+            decl# (declaration-for fn#)]
+          (swap! *globals* assoc '~name fn#)
+          (swap! *decls* conj decl#)
+          fn#))))
 
 (defmacro defstruct* [name & members]
   (let [members (partition 2 members)
@@ -49,9 +52,10 @@
       struct#)))
 
 (defmacro lib [symbol & body]
-  `(binding [*globals* (atom {})]
+  `(binding [*globals* (atom {})
+             *decls*   (atom [])]
     (let [exprs# (vector ~@body)]
-      {:name ~symbol :exprs exprs# :globals @*globals*})))
+      {:name ~symbol :exprs exprs# :decls @*decls* :globals @*globals*})))
 
 (defmacro deflib [name symbol & body]
   `(def ~name (lib ~symbol ~@body)))
