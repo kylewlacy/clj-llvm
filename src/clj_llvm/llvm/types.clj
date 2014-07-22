@@ -1,44 +1,44 @@
 (ns clj-llvm.llvm.types)
 
 (defn Int [width]
-  {:op :type
-   :kind :int
-   :width width})
+  {:llvm/op :type
+   :kind    :int
+   :width   width})
 
 (defn Pointer [el-type]
-  {:op :type
-   :kind :pointer
+  {:llvm/op :type
+   :kind    :pointer
    :el-type el-type})
 
 (defn Array [el-type count]
-  {:op :type
-   :kind :array
+  {:llvm/op :type
+   :kind    :array
    :el-type el-type
-   :count count})
+   :count   count})
 
 (def VoidT
-  {:op :type
-   :kind :void})
+  {:llvm/op :type
+   :kind    :void})
 
 (defn FnType
   ([arg-types ret-type]
     (FnType arg-types ret-type false))
   ([arg-types ret-type variadic?]
-    {:op :type
-     :kind :fn-type
+    {:llvm/op   :type
+     :kind      :fn-type
      :arg-types arg-types
-     :ret-type ret-type
+     :ret-type  ret-type
      :variadic? variadic?}))
 
 (defn StructType
   ([member-types]
     (StructType member-types nil))
   ([member-types member-names]
-    {:op :type
-     :kind :struct-type
+    {:llvm/op      :type
+     :kind         :struct-type
      :member-types member-types
      :member-names member-names
-     :idx (apply hash-map (mapcat vector member-names (range)))}))
+     :idx          (apply hash-map (mapcat vector member-names (range)))}))
 
 
 

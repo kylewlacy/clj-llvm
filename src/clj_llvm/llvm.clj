@@ -2,101 +2,101 @@
   (:require [clj-llvm.llvm.native :as native]
             [clj-llvm.llvm.types  :as types]))
 
-(defmulti declaration-for :op)
+(defmulti declaration-for :llvm/op)
 
 
 
 (defn alloca
   ([type] (alloca type (str (gensym "local"))))
   ([type name]
-    {:op :alloca
-     :id (gensym "alloca")
-     :type type
-     :name name}))
+    {:llvm/op :alloca
+     :id      (gensym "alloca")
+     :type    type
+     :name    name}))
 
 (defn block [& statements]
-  {:op :block
+  {:llvm/op    :block
    :statements statements})
 
 (defn call [fn- & args]
-  {:op :call
-   :fn fn-
-   :args args})
+  {:llvm/op :call
+   :fn      fn-
+   :args    args})
 
 (defn cast- [expr to-type]
-  {:op :cast
-   :expr expr
+  {:llvm/op :cast
+   :expr    expr
    :to-type to-type})
 
 (defn const [type val]
-  {:op :const
-   :type type
-   :val val})
+  {:llvm/op :const
+   :type    type
+   :val     val})
 
 (defn doall- [& statements]
-  {:op :doall
+  {:llvm/op    :doall
    :statements (butlast statements)
-   :ret (last statements)})
+   :ret        (last statements)})
 
 (defn fn-
   ([name type linkage]
     (fn- name type linkage nil))
   ([name type linkage body]
     (let [void? (= :void (-> type :ret-type :kind))]
-      {:op :fn
-       :id (gensym "fn")
-       :name name
-       :type type
+      {:llvm/op :fn
+       :id      (gensym "fn")
+       :name    name
+       :type    type
        :linkage linkage
-       :body body})))
+       :body    body})))
 
 (defn get-element-ptr [pointer & idx]
-  {:op :get-element-ptr
+  {:llvm/op :get-element-ptr
    :pointer pointer
-   :idx idx})
+   :idx     idx})
 
 (defn get-element-ptr-in-bounds [pointer & idx]
   (assoc (apply get-element-ptr pointer idx) :in-bounds? true))
 
 (defn get-global [name]
-  {:op :get-global
-   :name name})
+  {:llvm/op :get-global
+   :name    name})
 
 (defn get-fn [name]
-  {:op :get-fn
-   :name name})
+  {:llvm/op :get-fn
+   :name    name})
 
 (defn init-global
   ([name type]
     (init-global name type nil))
   ([name type val]
-    {:op :init-global
-     :id (gensym "global")
-     :name name
-     :type type
-     :val val}))
+    {:llvm/op :init-global
+     :id      (gensym "global")
+     :name    name
+     :type    type
+     :val     val}))
 
 (defn load- [var]
-  {:op :load
-   :var var})
+  {:llvm/op :load
+   :var     var})
 
 (defn module [name & exprs]
-  {:op :module
-   :name name
-   :exprs exprs})
+  {:llvm/op :module
+   :name    name
+   :exprs   exprs})
 
 (defn param [idx]
-  {:op :param
-   :idx idx})
+  {:llvm/op :param
+   :idx     idx})
 
 (defn ret [val]
-  {:op :ret
-   :val val})
+  {:llvm/op :ret
+   :val     val})
 
 (defn store [var val]
-  {:op :store
-   :var var
-   :val val})
+  {:llvm/op :store
+   :var     var
+   :val     val})
 
 
 

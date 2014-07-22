@@ -18,10 +18,10 @@
 
 
 
-(defmulti build-expr :op)
+(defmulti build-expr :llvm/op)
 (defmulti build-type :kind)
 (defmulti build-const #(-> % :type :kind))
-(defmulti return-type :op)
+(defmulti return-type :llvm/op)
 
 
 
@@ -158,8 +158,8 @@
 (defmethod build-expr :type [ast]
   (build-type ast))
 
-(defmethod build-expr :default [{:keys [op] :as ast}]
   (throw (ex-info (str "Don't know how to build LLVM expression of type " op)
+(defmethod build-expr :default [{op :llvm/op :as ast}]
                   {:type ::unknown-expr
                    :node ast})))
 
