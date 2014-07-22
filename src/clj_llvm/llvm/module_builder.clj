@@ -158,8 +158,13 @@
 (defmethod build-expr :type [ast]
   (build-type ast))
 
-  (throw (ex-info (str "Don't know how to build LLVM expression of type " op)
+(defmethod build-expr nil [ast]
+  (throw (ex-info (str "Can't build LLVM expression from non-LLVM node")
+                  {:type ::unknown-expr
+                   :node ast})))
+
 (defmethod build-expr :default [{op :llvm/op :as ast}]
+  (throw (ex-info (str "Don't know how to build LLVM expression of type" op)
                   {:type ::unknown-expr
                    :node ast})))
 
@@ -187,13 +192,19 @@
 (defmethod build-type :array [{:keys [el-type count]}]
   (native/LLVMArrayType (build-expr el-type) count))
 
-(defmethod build-type :void [ast]
+(defmethod build-type :void [_]
   (native/LLVMVoidType))
+
+(defmethod build-type nil [ast]
+  (throw (ex-info (str "Can't build non-LLVM type from non-LLVM node")
+                  {:type ::unknown-type
+                   :node ast})))
 
 (defmethod build-type :default [{:keys [kind] :as ast}]
   (throw (ex-info (str "Don't know how to build LLVM type of kind " kind)
                   {:type ::unknown-type
                    :node ast})))
+
 
 
 ; TODO: Signed/unsigned
@@ -203,7 +214,8 @@
 (defmethod build-const :pointer [{:keys [type val] :as ast}]
   (if (nil? val)
     (native/LLVMConstNull (build-expr type))
-    (throw (ex-info (str "Can't build non-nil LLVM pointer of type " type)
+    (throw (ex-info (str "Can't build non-nil LLVM pointer of type kind "
+                         (type :kind))
                     {:type ::non-nil-const-pointer
                      :node ast}))))
 
@@ -217,6 +229,11 @@
                                        (count val))]
     (native/LLVMSetInitializer global const)
     global))
+
+(defmethod build-const nil [ast]
+  (throw (ex-info (str "Can't build LLVM const from non-const node")
+                  {:type ::unknown-const
+                   :node ast})))
 
 (defmethod build-const :default [{{kind :kind} :type :as ast}]
   (throw (ex-info (str "Don't know how to build LLVM const of type kind " kind)
@@ -258,6 +275,16 @@
 (defmethod return-type :type [type]
   type)
 
+(defmethod return-type nil [ast]
+  (throw (ex-info (str "Can't get return type from non-LLVM node")
+                  {:type ::unknown-return-type
+                   :node ast})))
+
+(defmethod return-type :default [{op :llvm/op :as ast}]
+  (throw (ex-info (str "Don't know how to get return type for node " op)
+                  {:type ::unknown-return-type
+                   :node ast})))
+
 
 
 (defmethod cast-kind* [:int :int] [ast [from-type to-type] kinds]
@@ -272,9 +299,17 @@
 (defmethod cast-kind* [:pointer :pointer] [ast types kinds]
   :bitcast)
 
+(defmethod cast-kind* nil [ast types kinds]
+  (throw (ex-info (str "Can't build cast from non-LLVM node " ast)
+                  {:type  ::unknown-cast
+                   :node  ast
+                   :types types
+                   :kinds kinds})))
+
 (defmethod cast-kind* :default [ast types kinds]
   (throw (ex-info (str "Don't know how to build cast from kinds " kinds)
-                  {:type ::unknown-cast
+                  {:type  ::unknown-cast
+                   :node  ast
                    :types types
                    :kinds kinds})))
 
