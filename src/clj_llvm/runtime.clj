@@ -33,11 +33,9 @@
             body# (vector ~@body)
             body# (if void?# (concat body# [(ret nil)]) body#)
             fn#   (fn- ~(str name)
-                       (FnType ~(mapv first args)
-                               ~ret-type
-                               ~variadic?)
-                    :extern
-                    (if-not (empty? body#) (apply block body#)))
+                       fn-type#
+                       :extern
+                       (if-not (empty? body#) (apply block body#)))
             decl# (declaration-for fn#)]
           (swap! *globals* assoc '~name fn#)
           (swap! *decls* conj decl#)
