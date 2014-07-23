@@ -1,8 +1,11 @@
 (ns clj-llvm.llvm.module-builder
-  (:require [clojure.java.shell   :as    shell]
-            [clj-llvm.llvm        :as    llvm]
-            [clj-llvm.llvm.types  :as    types]
-            [clj-llvm.llvm.native :as    native]))
+  (:require [clojure.java.shell      :as    shell]
+            [clj-llvm.llvm           :as    llvm]
+            [clj-llvm.llvm.types     :as    types]
+            [clj-llvm.llvm.interop   :as    interop]
+            [clj-llvm.native-interop :refer [map-parr
+                                             new-pointer
+                                             value-at]]))
 
 (def ^:dynamic *builder*)
 (def ^:dynamic *module*)
@@ -26,9 +29,9 @@
 
 
 (def kw->cast-fn
-  {:bitcast native/LLVMBuildBitCast
-   :trunc   native/LLVMBuildTrunc
-   :zext    native/LLVMBuildZExt})
+  {:bitcast interop/LLVMBuildBitCast
+   :trunc   interop/LLVMBuildTrunc
+   :zext    interop/LLVMBuildZExt})
 
 (defn get-casting-types [{:keys [expr to-type] :as ast}]
   [(return-type expr) to-type])
@@ -49,9 +52,9 @@
         built-expr (build-expr expr)]
     (if cast-kind
       (do
-        (native/LLVMTypeOf built-expr) ; Forces the expression's
-                                       ; type to be initialized
-                                       ; TODO: Can we do this by hand?
+        (interop/LLVMTypeOf built-expr) ; Forces the expression's
+                                        ; type to be initialized
+                                        ; TODO: Can we do this by hand?
         (cast-fn *builder*
                   built-expr
                   (build-expr to-type)
@@ -63,15 +66,15 @@
 (defmethod build-expr :alloca [{:keys [type name id]}]
   (if-let [maybe-alloca (@*built-values* id)]
     maybe-alloca
-    (let [new-alloca (native/LLVMBuildAlloca *builder* (build-expr type) name)]
+    (let [new-alloca (interop/LLVMBuildAlloca *builder* (build-expr type) name)]
       (swap! *built-values* assoc id new-alloca)
       new-alloca)))
 
 (defmethod build-expr :block [{:keys [statements] :as ast}]
-  (let [block (native/LLVMAppendBasicBlock (*current-fn* :expr)
-                                           (str (gensym "block")))
-        builder (native/LLVMCreateBuilder)]
-    (native/LLVMPositionBuilderAtEnd builder block)
+  (let [block (interop/LLVMAppendBasicBlock (*current-fn* :expr)
+                                            (str (gensym "block")))
+        builder (interop/LLVMCreateBuilder)]
+    (interop/LLVMPositionBuilderAtEnd builder block)
     (binding [*builder*      builder]
       (if statements
         (doseq [statement statements]
@@ -94,9 +97,9 @@
   ; TODO: Use linkage
   (if-let [maybe-fn (@*built-values* id)]
     maybe-fn
-    (let [new-fn (native/LLVMAddFunction *module* name (build-expr type))]
-      (native/LLVMSetFunctionCallConv new-fn native/LLVMCCallConv)
-      (native/LLVMSetLinkage new-fn native/LLVMExternalLinkage)
+    (let [new-fn (interop/LLVMAddFunction *module* name (build-expr type))]
+      (interop/LLVMSetFunctionCallConv new-fn interop/LLVMCCallConv)
+      (interop/LLVMSetLinkage new-fn interop/LLVMExternalLinkage)
       (if body
         (binding [*current-fn* {:expr new-fn :ast ast}]
           (build-expr body)))
@@ -105,53 +108,53 @@
       new-fn)))
 
 (defmethod build-expr :get-fn [{:keys [name]}]
-  (native/LLVMGetNamedFunction *module* (str name)))
+  (interop/LLVMGetNamedFunction *module* (str name)))
 
 (defmethod build-expr :get-global [{:keys [name]}]
-  (native/LLVMGetNamedGlobal *module* (str name)))
+  (interop/LLVMGetNamedGlobal *module* (str name)))
 
 (defmethod build-expr :call [{fn- :fn args :args :as ast}]
   (let [ret-void? (= :void (-> ast return-type :kind))
         name      (if ret-void? "" (str (gensym "invoke")))
-        arg-ptr   (native/map-parr build-expr args)]
-    (native/LLVMBuildCall *builder*
-                          (build-expr fn-)
-                          arg-ptr
-                          (count args)
-                          name)))
+        arg-ptr   (map-parr build-expr args)]
+    (interop/LLVMBuildCall *builder*
+                           (build-expr fn-)
+                           arg-ptr
+                           (count args)
+                           name)))
 
 (defmethod build-expr :load [{var- :var}]
-  (native/LLVMBuildLoad *builder*
-                        (build-expr var-)
-                        (or (var- :name) (str (gensym "load")))))
+  (interop/LLVMBuildLoad *builder*
+                         (build-expr var-)
+                         (or (var- :name) (str (gensym "load")))))
 
 (defmethod build-expr :param [{:keys [idx]}]
-  (native/LLVMGetParam (*current-fn* :expr) idx))
+  (interop/LLVMGetParam (*current-fn* :expr) idx))
 
 (defmethod build-expr :ret [{:keys [val]}]
   (if val
-    (native/LLVMBuildRet *builder* (build-expr val))
-    (native/LLVMBuildRetVoid *builder*)))
+    (interop/LLVMBuildRet *builder* (build-expr val))
+    (interop/LLVMBuildRetVoid *builder*)))
 
 (defmethod build-expr :init-global [{:keys [name type id val] :as ast}]
   (if-let [maybe-global (@*built-values* id)]
     maybe-global
-    (let [global (native/LLVMAddGlobal *module* (build-expr type) name)]
+    (let [global (interop/LLVMAddGlobal *module* (build-expr type) name)]
       (swap! *globals* assoc name ast)
-      (if val (native/LLVMSetInitializer global (build-expr val)))
+      (if val (interop/LLVMSetInitializer global (build-expr val)))
       (swap! *built-values* assoc id global)
       global)))
 
 (defmethod build-expr :store [{:keys [var val]}]
-  (native/LLVMBuildStore *builder* (build-expr val) (build-expr var)))
+  (interop/LLVMBuildStore *builder* (build-expr val) (build-expr var)))
 
 (defmethod build-expr :get-element-ptr [{:keys [pointer idx in-bounds?]}]
   (let [build-fn (if in-bounds?
-                   native/LLVMBuildInBoundsGEP
-                   native/LLVMBuildGEP)]
+                   interop/LLVMBuildInBoundsGEP
+                   interop/LLVMBuildGEP)]
     (build-fn *builder*
               (build-expr pointer)
-              (native/map-parr build-expr idx)
+              (map-parr build-expr idx)
               (count idx)
               (str (gensym "gep")))))
 
@@ -171,29 +174,28 @@
 
 
 (defmethod build-type :fn-type [{:keys [arg-types ret-type variadic?]}]
-  (native/LLVMFunctionType (build-expr ret-type)
-                           (native/map-parr build-expr arg-types)
-                           (count arg-types)
-                           variadic?))
+  (interop/LLVMFunctionType (build-expr ret-type)
+                            (map-parr build-expr arg-types)
+                            (count arg-types)
+                            variadic?))
 
 (defmethod build-type :struct-type [{:keys [member-types]}]
-  (let [struct-type (native/LLVMStructType (native/map-parr build-expr
-                                                            member-types)
-                                           (count member-types)
-                                           false)]
+  (let [struct-type (interop/LLVMStructType (map-parr build-expr member-types)
+                                            (count member-types)
+                                            false)]
     struct-type))
 
 (defmethod build-type :int [{:keys [width]}]
-  (native/LLVMIntType width))
+  (interop/LLVMIntType width))
 
 (defmethod build-type :pointer [{:keys [el-type]}]
-  (native/LLVMPointerType (build-expr el-type) 0))
+  (interop/LLVMPointerType (build-expr el-type) 0))
 
 (defmethod build-type :array [{:keys [el-type count]}]
-  (native/LLVMArrayType (build-expr el-type) count))
+  (interop/LLVMArrayType (build-expr el-type) count))
 
 (defmethod build-type :void [_]
-  (native/LLVMVoidType))
+  (interop/LLVMVoidType))
 
 (defmethod build-type nil [ast]
   (throw (ex-info (str "Can't build non-LLVM type from non-LLVM node")
@@ -209,11 +211,11 @@
 
 ; TODO: Signed/unsigned
 (defmethod build-const :int [{:keys [type val]}]
-  (native/LLVMConstInt (build-expr type) val true))
+  (interop/LLVMConstInt (build-expr type) val true))
 
 (defmethod build-const :pointer [{:keys [type val] :as ast}]
   (if (nil? val)
-    (native/LLVMConstNull (build-expr type))
+    (interop/LLVMConstNull (build-expr type))
     (throw (ex-info (str "Can't build non-nil LLVM pointer of type kind "
                          (type :kind))
                     {:type ::non-nil-const-pointer
@@ -221,13 +223,13 @@
 
 (defmethod build-const :array [{:keys [type val]}]
   (let [el-type (type :el-type)
-        global  (native/LLVMAddGlobal *module*
-                                      (build-expr type)
-                                      (str (gensym "str")))
-        const   (native/LLVMConstArray (build-expr el-type)
-                                       (native/map-parr build-expr val)
-                                       (count val))]
-    (native/LLVMSetInitializer global const)
+        global  (interop/LLVMAddGlobal *module*
+                                       (build-expr type)
+                                       (str (gensym "str")))
+        const   (interop/LLVMConstArray (build-expr el-type)
+                                        (map-parr build-expr val)
+                                        (count val))]
+    (interop/LLVMSetInitializer global const)
     global))
 
 (defmethod build-const nil [ast]
@@ -316,7 +318,7 @@
 
 
 (defn build-module [{:keys [name exprs]}]
-  (let [module (native/LLVMModuleCreateWithName (str name))]
+  (let [module (interop/LLVMModuleCreateWithName (str name))]
     (binding [*module*       module
               *globals*      (atom {})
               *fns*          (atom {})
@@ -327,74 +329,73 @@
 
 (defn find-llvm-target-by-name [name]
   (first (filter (comp (partial = name) :name)
-                 (native/target-seq))))
+                 (interop/target-seq))))
 
 (defn create-target-machine []
-  (native/LLVMInitializeX86TargetInfo)
-  (native/LLVMInitializeX86Target)
-  (native/LLVMInitializeX86TargetMC)
-  (native/LLVMInitializeX86AsmPrinter)
-  (native/LLVMInitializeX86AsmParser)
-  (native/LLVMCreateTargetMachine (-> (native/target-seq) first :target)
-                                  (native/LLVMGetDefaultTargetTriple)
-                                  "generic"
-                                  ""
-                                  native/LLVMCodeGenLevelDefault
-                                  native/LLVMRelocDefault
-                                  native/LLVMCodeModelDefault))
+  (interop/LLVMInitializeX86TargetInfo)
+  (interop/LLVMInitializeX86Target)
+  (interop/LLVMInitializeX86TargetMC)
+  (interop/LLVMInitializeX86AsmPrinter)
+  (interop/LLVMInitializeX86AsmParser)
+  (interop/LLVMCreateTargetMachine (-> (interop/target-seq) first :target)
+                                   (interop/LLVMGetDefaultTargetTriple)
+                                   "generic"
+                                   ""
+                                  interop/LLVMCodeGenLevelDefault
+                                  interop/LLVMRelocDefault
+                                  interop/LLVMCodeModelDefault))
 
 (defn verify [module]
-  (let [error-message (native/new-pointer)
-        error?        (native/LLVMVerifyModule module
-                                               native/LLVMPrintMessageAction
-                                               error-message)]
-    (assert (not error?) (.getString (native/value-at error-message) 0))
-
-    (native/LLVMDisposeMessage (native/value-at error-message)))
+  (let [error-message (new-pointer)
+        error?        (interop/LLVMVerifyModule module
+                                                interop/LLVMPrintMessageAction
+                                                error-message)]
+    (assert (not error?) (.getString (value-at error-message) 0))
+    (interop/LLVMDisposeMessage (value-at error-message)))
   module)
 
 (defn add-default-passes [pass-manager]
   (doto pass-manager
-    native/LLVMAddFunctionInliningPass
-    native/LLVMAddLoopUnrollPass
-    native/LLVMAddGVNPass
-    native/LLVMAddCFGSimplificationPass
-    native/LLVMAddBBVectorizePass
-    native/LLVMAddConstantPropagationPass
-    native/LLVMAddInstructionCombiningPass
-    native/LLVMAddPromoteMemoryToRegisterPass))
+    interop/LLVMAddFunctionInliningPass
+    interop/LLVMAddLoopUnrollPass
+    interop/LLVMAddGVNPass
+    interop/LLVMAddCFGSimplificationPass
+    interop/LLVMAddBBVectorizePass
+    interop/LLVMAddConstantPropagationPass
+    interop/LLVMAddInstructionCombiningPass
+    interop/LLVMAddPromoteMemoryToRegisterPass))
 
 (defn dump [module]
-  (native/LLVMDumpModule module)
+  (interop/LLVMDumpModule module)
   module)
 
 (defn module-to-ir-string [module]
-  (let [ir  (native/LLVMPrintModuleToString module)
+  (let [ir  (interop/LLVMPrintModuleToString module)
         str (.getString ir 0)]
-    (native/LLVMDisposeMessage ir)
+    (interop/LLVMDisposeMessage ir)
     str))
 
 (defn optimize [module]
-  (let [pass-manager (native/LLVMCreatePassManager)]
+  (let [pass-manager (interop/LLVMCreatePassManager)]
     (add-default-passes pass-manager)
-    (native/LLVMRunPassManager pass-manager module)
-    (native/LLVMDisposePassManager pass-manager))
+    (interop/LLVMRunPassManager pass-manager module)
+    (interop/LLVMDisposePassManager pass-manager))
   module)
 
 (def kw->file-type
-  {:assembly-file native/LLVMAssemblyFile
-   :object-file   native/LLVMObjectFile})
+  {:assembly-file interop/LLVMAssemblyFile
+   :object-file   interop/LLVMObjectFile})
 
 (defn module-to-file-type [module file-type output-file]
   (let [target        (create-target-machine)
         output-type   (kw->file-type file-type)
-        error-message (native/new-pointer)
-        error?        (native/LLVMTargetMachineEmitToFile target
-                                                          module
-                                                          output-file
-                                                          output-type
-                                                          error-message)]
-      (assert (not error?) (.getString (native/value-at error-message) 0)))
+        error-message (new-pointer)
+        error?        (interop/LLVMTargetMachineEmitToFile target
+                                                           module
+                                                           output-file
+                                                           output-type
+                                                           error-message)]
+      (assert (not error?) (.getString (value-at error-message) 0)))
   output-file)
 
 (defn module-to-object [module output-file]
