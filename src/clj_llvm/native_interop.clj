@@ -1,6 +1,6 @@
 ; Taken from https://github.com/halgari/mjolnir/blob/5b1c0cf1c34d5521438ee33974715d98abb7884d/src/mjolnir/llvmc.clj
 (ns clj-llvm.native-interop
-  (:import (com.sun.jna Pointer Memory)))
+  (:import (com.sun.jna Pointer Memory Callback)))
 
 (def ^:dynamic *lib*)
 
@@ -53,9 +53,35 @@
             (recur (next a) (inc c)))
         arr))))
 
-(defn map-parr [fn coll]
+(defn map-parr [fn- coll]
   (into-array Pointer
-              (map fn coll)))
+              (map fn- coll)))
 
 (defn value-at [ptr]
   (.getPointer ptr 0))
+
+(defmacro make-callback [signature fn-]
+  {:pre [(<= 2 (count signature))
+         (= '-> (last (butlast signature)))]}
+  (let [arg-type-symbols (drop-last 2 signature)
+        ret-type-symbol  (last signature)
+        arg-types        (map resolve arg-type-symbols)
+        ret-type         (resolve ret-type-symbol)
+        arg-names        (map #(gensym (str "arg_" %)) arg-type-symbols)
+        tagged-method    (with-meta 'callback {:tag ret-type})
+        tagged-args      (map #(with-meta %1 {:tag %2}) arg-names arg-types)
+        all-args         (conj tagged-args 'this)
+        protocol-name    (symbol (str (namespace-munge *ns*) "."
+                                      (gensym "CallbackInterface")))
+        protocol-method  (vector 'callback (vec arg-types) ret-type)]
+    (assert (every? identity arg-types)
+            (str "Unknown type in arg list " (vec arg-type-symbols)))
+    (assert ret-type (str "Unknown return type " ret-type-symbol))
+    `(do
+      (gen-interface :name    ~protocol-name
+                     :methods [~protocol-method]
+                     :extends [Callback])
+      (import ~protocol-name)
+      (reify ~protocol-name
+        (~tagged-method ~(vec all-args)
+          ~(apply list fn- arg-names))))))
