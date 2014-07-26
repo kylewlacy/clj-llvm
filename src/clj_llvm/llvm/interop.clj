@@ -2,143 +2,143 @@
 (ns clj-llvm.llvm.interop
   (:import (com.sun.jna Pointer))
   (:require [clj-llvm.native-interop :refer [with-lib
-                                             defnative
-                                             defenum]]))
+                                             def-native-fn
+                                             def-enum]]))
 
 
 (with-lib LLVM-3.4
-  (defnative Integer LLVMAddBBVectorizePass)
-  (defnative Integer LLVMAddCFGSimplificationPass)
-  (defnative Integer LLVMAddConstantPropagationPass)
-  (defnative Pointer LLVMAddFunction)
-  (defnative Pointer LLVMAddFunctionInliningPass)
-  (defnative Integer LLVMAddGVNPass)
-  (defnative Pointer LLVMAddGlobal)
-  (defnative Integer LLVMAddIncoming)
-  (defnative Integer LLVMAddInstructionCombiningPass)
-  (defnative Integer LLVMAddLoopUnrollPass)
-  (defnative Integer LLVMAddLoopVectorizePass)
-  (defnative Integer LLVMAddPromoteMemoryToRegisterPass)
-  (defnative Pointer LLVMAppendBasicBlock)
-  (defnative Pointer LLVMArrayType)
-  (defnative Pointer LLVMBuildAdd)
-  (defnative Pointer LLVMBuildAdd)
-  (defnative Pointer LLVMBuildAlloca)
-  (defnative Pointer LLVMBuildAnd)
-  (defnative Pointer LLVMBuildArrayMalloc)
-  (defnative Pointer LLVMBuildAtomicRMW)
-  (defnative Pointer LLVMBuildBinOp)
-  (defnative Pointer LLVMBuildBitCast)
-  (defnative Pointer LLVMBuildBr)
-  (defnative Pointer LLVMBuildCall)
-  (defnative Pointer LLVMBuildCast)
-  (defnative Pointer LLVMBuildCondBr)
-  (defnative Pointer LLVMBuildExtractElement)
-  (defnative Pointer LLVMBuildFAdd)
-  (defnative Pointer LLVMBuildFCmp)
-  (defnative Pointer LLVMBuildFDiv)
-  (defnative Pointer LLVMBuildFMul)
-  (defnative Pointer LLVMBuildFPToSI)
-  (defnative Pointer LLVMBuildFSub)
-  (defnative Pointer LLVMBuildFree)
-  (defnative Pointer LLVMBuildGEP)
-  (defnative Pointer LLVMBuildICmp)
-  (defnative Pointer LLVMBuildInBoundsGEP)
-  (defnative Pointer LLVMBuildInsertElement)
-  (defnative Pointer LLVMBuildIntCast)
-  (defnative Pointer LLVMBuildLShr)
-  (defnative Pointer LLVMBuildLoad)
-  (defnative Pointer LLVMBuildMalloc)
-  (defnative Pointer LLVMBuildMul)
-  (defnative Pointer LLVMBuildNot)
-  (defnative Pointer LLVMBuildOr)
-  (defnative Pointer LLVMBuildPhi)
-  (defnative Integer LLVMBuildRet)
-  (defnative Integer LLVMBuildRetVoid)
-  (defnative Pointer LLVMBuildSExt)
-  (defnative Pointer LLVMBuildSExtOrBitCast)
-  (defnative Pointer LLVMBuildSIToFP)
-  (defnative Pointer LLVMBuildShl)
-  (defnative Pointer LLVMBuildStore)
-  (defnative Pointer LLVMBuildSub)
-  (defnative Pointer LLVMBuildSub)
-  (defnative Pointer LLVMBuildTrunc)
-  (defnative Pointer LLVMBuildTruncOrBitCast)
-  (defnative Pointer LLVMBuildZExt)
-  (defnative Pointer LLVMBuildZExtOrBitCast)
-  (defnative Pointer LLVMConstArray)
-  (defnative Pointer LLVMConstBitCast)
-  (defnative Pointer LLVMConstGEP)
-  (defnative Pointer LLVMConstInt)
-  (defnative Pointer LLVMConstInt)
-  (defnative Pointer LLVMConstNull)
-  (defnative Pointer LLVMConstPointerCast)
-  (defnative Pointer LLVMConstPointerNull)
-  (defnative Pointer LLVMConstReal)
-  (defnative Pointer LLVMConstStruct)
-  (defnative Pointer LLVMConstTrunc)
-  (defnative Pointer LLVMConstVector)
-  (defnative Pointer LLVMConstZExt)
-  (defnative Integer LLVMCountParamTypes)
-  (defnative Pointer LLVMCreateBuilder)
-  (defnative Integer LLVMCreateInterpreterForModule)
-  (defnative Integer LLVMCreateJITCompiler)
-  (defnative Pointer LLVMCreateModuleProviderForExistingModule)
-  (defnative Pointer LLVMCreatePassManager)
-  (defnative Pointer LLVMCreateTargetData)
-  (defnative Pointer LLVMCreateTargetMachine)
-  (defnative Integer LLVMDisposeBuilder)
-  (defnative Integer LLVMDisposeExecutionEngine)
-  (defnative Integer LLVMDisposeGenericValue)
-  (defnative Integer LLVMDisposeMessage)
-  (defnative Integer LLVMDisposePassManager)
-  (defnative Pointer LLVMDoubleType)
-  (defnative Integer LLVMDumpModule)
-  (defnative Pointer LLVMFloatType)
-  (defnative Pointer LLVMFunctionType)
-  (defnative Pointer LLVMGetDefaultTargetTriple)
-  (defnative Pointer LLVMGetFirstTarget)
-  (defnative Pointer LLVMGetNamedFunction)
-  (defnative Pointer LLVMGetNamedGlobal)
-  (defnative Pointer LLVMGetNextTarget)
-  (defnative Pointer LLVMGetParam)
-  (defnative String  LLVMGetTarget)
-  (defnative String  LLVMGetTargetDescription)
-  (defnative Pointer LLVMGetTargetMachineData)
-  (defnative String  LLVMGetTargetMachineTriple)
-  (defnative String  LLVMGetTargetName)
-  (defnative Integer LLVMGetTypeKind)
-  (defnative Integer LLVMGetTypeKind)
-  (defnative Integer LLVMInitializeX86AsmParser)
-  (defnative Integer LLVMInitializeX86AsmPrinter)
-  (defnative Integer LLVMInitializeX86Target)
-  (defnative Integer LLVMInitializeX86TargetInfo)
-  (defnative Integer LLVMInitializeX86TargetMC)
-  (defnative Pointer LLVMInt64Type)
-  (defnative Pointer LLVMIntType)
-  (defnative Integer LLVMIsConstant)
-  (defnative Integer LLVMLinkInInterpreter)
-  (defnative Integer LLVMLinkInJIT)
-  (defnative Integer LLVMLinkInJIT)
-  (defnative Pointer LLVMModuleCreateWithName)
-  (defnative Pointer LLVMPointerType)
-  (defnative Integer LLVMPositionBuilderAtEnd)
-  (defnative Pointer LLVMPrintModuleToString)
-  (defnative Integer LLVMRunPassManager)
-  (defnative Pointer LLVMSetDataLayout)
-  (defnative Integer LLVMSetFunctionCallConv)
-  (defnative Integer LLVMSetInitializer)
-  (defnative Integer LLVMSetLinkage)
-  (defnative Integer LLVMSetTarget)
-  (defnative Pointer LLVMStructType)
-  (defnative Boolean LLVMTargetHasAsmBackend)
-  (defnative Boolean LLVMTargetHasJIT)
-  (defnative Boolean LLVMTargetHasTargetMachine)
-  (defnative Boolean LLVMTargetMachineEmitToFile)
-  (defnative Pointer LLVMTypeOf)
-  (defnative Pointer LLVMVectorType)
-  (defnative Boolean LLVMVerifyModule)
-  (defnative Pointer LLVMVoidType)
+  (def-native-fn Integer LLVMAddBBVectorizePass)
+  (def-native-fn Integer LLVMAddCFGSimplificationPass)
+  (def-native-fn Integer LLVMAddConstantPropagationPass)
+  (def-native-fn Pointer LLVMAddFunction)
+  (def-native-fn Pointer LLVMAddFunctionInliningPass)
+  (def-native-fn Integer LLVMAddGVNPass)
+  (def-native-fn Pointer LLVMAddGlobal)
+  (def-native-fn Integer LLVMAddIncoming)
+  (def-native-fn Integer LLVMAddInstructionCombiningPass)
+  (def-native-fn Integer LLVMAddLoopUnrollPass)
+  (def-native-fn Integer LLVMAddLoopVectorizePass)
+  (def-native-fn Integer LLVMAddPromoteMemoryToRegisterPass)
+  (def-native-fn Pointer LLVMAppendBasicBlock)
+  (def-native-fn Pointer LLVMArrayType)
+  (def-native-fn Pointer LLVMBuildAdd)
+  (def-native-fn Pointer LLVMBuildAdd)
+  (def-native-fn Pointer LLVMBuildAlloca)
+  (def-native-fn Pointer LLVMBuildAnd)
+  (def-native-fn Pointer LLVMBuildArrayMalloc)
+  (def-native-fn Pointer LLVMBuildAtomicRMW)
+  (def-native-fn Pointer LLVMBuildBinOp)
+  (def-native-fn Pointer LLVMBuildBitCast)
+  (def-native-fn Pointer LLVMBuildBr)
+  (def-native-fn Pointer LLVMBuildCall)
+  (def-native-fn Pointer LLVMBuildCast)
+  (def-native-fn Pointer LLVMBuildCondBr)
+  (def-native-fn Pointer LLVMBuildExtractElement)
+  (def-native-fn Pointer LLVMBuildFAdd)
+  (def-native-fn Pointer LLVMBuildFCmp)
+  (def-native-fn Pointer LLVMBuildFDiv)
+  (def-native-fn Pointer LLVMBuildFMul)
+  (def-native-fn Pointer LLVMBuildFPToSI)
+  (def-native-fn Pointer LLVMBuildFSub)
+  (def-native-fn Pointer LLVMBuildFree)
+  (def-native-fn Pointer LLVMBuildGEP)
+  (def-native-fn Pointer LLVMBuildICmp)
+  (def-native-fn Pointer LLVMBuildInBoundsGEP)
+  (def-native-fn Pointer LLVMBuildInsertElement)
+  (def-native-fn Pointer LLVMBuildIntCast)
+  (def-native-fn Pointer LLVMBuildLShr)
+  (def-native-fn Pointer LLVMBuildLoad)
+  (def-native-fn Pointer LLVMBuildMalloc)
+  (def-native-fn Pointer LLVMBuildMul)
+  (def-native-fn Pointer LLVMBuildNot)
+  (def-native-fn Pointer LLVMBuildOr)
+  (def-native-fn Pointer LLVMBuildPhi)
+  (def-native-fn Integer LLVMBuildRet)
+  (def-native-fn Integer LLVMBuildRetVoid)
+  (def-native-fn Pointer LLVMBuildSExt)
+  (def-native-fn Pointer LLVMBuildSExtOrBitCast)
+  (def-native-fn Pointer LLVMBuildSIToFP)
+  (def-native-fn Pointer LLVMBuildShl)
+  (def-native-fn Pointer LLVMBuildStore)
+  (def-native-fn Pointer LLVMBuildSub)
+  (def-native-fn Pointer LLVMBuildSub)
+  (def-native-fn Pointer LLVMBuildTrunc)
+  (def-native-fn Pointer LLVMBuildTruncOrBitCast)
+  (def-native-fn Pointer LLVMBuildZExt)
+  (def-native-fn Pointer LLVMBuildZExtOrBitCast)
+  (def-native-fn Pointer LLVMConstArray)
+  (def-native-fn Pointer LLVMConstBitCast)
+  (def-native-fn Pointer LLVMConstGEP)
+  (def-native-fn Pointer LLVMConstInt)
+  (def-native-fn Pointer LLVMConstInt)
+  (def-native-fn Pointer LLVMConstNull)
+  (def-native-fn Pointer LLVMConstPointerCast)
+  (def-native-fn Pointer LLVMConstPointerNull)
+  (def-native-fn Pointer LLVMConstReal)
+  (def-native-fn Pointer LLVMConstStruct)
+  (def-native-fn Pointer LLVMConstTrunc)
+  (def-native-fn Pointer LLVMConstVector)
+  (def-native-fn Pointer LLVMConstZExt)
+  (def-native-fn Integer LLVMCountParamTypes)
+  (def-native-fn Pointer LLVMCreateBuilder)
+  (def-native-fn Integer LLVMCreateInterpreterForModule)
+  (def-native-fn Integer LLVMCreateJITCompiler)
+  (def-native-fn Pointer LLVMCreateModuleProviderForExistingModule)
+  (def-native-fn Pointer LLVMCreatePassManager)
+  (def-native-fn Pointer LLVMCreateTargetData)
+  (def-native-fn Pointer LLVMCreateTargetMachine)
+  (def-native-fn Integer LLVMDisposeBuilder)
+  (def-native-fn Integer LLVMDisposeExecutionEngine)
+  (def-native-fn Integer LLVMDisposeGenericValue)
+  (def-native-fn Integer LLVMDisposeMessage)
+  (def-native-fn Integer LLVMDisposePassManager)
+  (def-native-fn Pointer LLVMDoubleType)
+  (def-native-fn Integer LLVMDumpModule)
+  (def-native-fn Pointer LLVMFloatType)
+  (def-native-fn Pointer LLVMFunctionType)
+  (def-native-fn Pointer LLVMGetDefaultTargetTriple)
+  (def-native-fn Pointer LLVMGetFirstTarget)
+  (def-native-fn Pointer LLVMGetNamedFunction)
+  (def-native-fn Pointer LLVMGetNamedGlobal)
+  (def-native-fn Pointer LLVMGetNextTarget)
+  (def-native-fn Pointer LLVMGetParam)
+  (def-native-fn String  LLVMGetTarget)
+  (def-native-fn String  LLVMGetTargetDescription)
+  (def-native-fn Pointer LLVMGetTargetMachineData)
+  (def-native-fn String  LLVMGetTargetMachineTriple)
+  (def-native-fn String  LLVMGetTargetName)
+  (def-native-fn Integer LLVMGetTypeKind)
+  (def-native-fn Integer LLVMGetTypeKind)
+  (def-native-fn Integer LLVMInitializeX86AsmParser)
+  (def-native-fn Integer LLVMInitializeX86AsmPrinter)
+  (def-native-fn Integer LLVMInitializeX86Target)
+  (def-native-fn Integer LLVMInitializeX86TargetInfo)
+  (def-native-fn Integer LLVMInitializeX86TargetMC)
+  (def-native-fn Pointer LLVMInt64Type)
+  (def-native-fn Pointer LLVMIntType)
+  (def-native-fn Integer LLVMIsConstant)
+  (def-native-fn Integer LLVMLinkInInterpreter)
+  (def-native-fn Integer LLVMLinkInJIT)
+  (def-native-fn Integer LLVMLinkInJIT)
+  (def-native-fn Pointer LLVMModuleCreateWithName)
+  (def-native-fn Pointer LLVMPointerType)
+  (def-native-fn Integer LLVMPositionBuilderAtEnd)
+  (def-native-fn Pointer LLVMPrintModuleToString)
+  (def-native-fn Integer LLVMRunPassManager)
+  (def-native-fn Pointer LLVMSetDataLayout)
+  (def-native-fn Integer LLVMSetFunctionCallConv)
+  (def-native-fn Integer LLVMSetInitializer)
+  (def-native-fn Integer LLVMSetLinkage)
+  (def-native-fn Integer LLVMSetTarget)
+  (def-native-fn Pointer LLVMStructType)
+  (def-native-fn Boolean LLVMTargetHasAsmBackend)
+  (def-native-fn Boolean LLVMTargetHasJIT)
+  (def-native-fn Boolean LLVMTargetHasTargetMachine)
+  (def-native-fn Boolean LLVMTargetMachineEmitToFile)
+  (def-native-fn Pointer LLVMTypeOf)
+  (def-native-fn Pointer LLVMVectorType)
+  (def-native-fn Boolean LLVMVerifyModule)
+  (def-native-fn Pointer LLVMVoidType)
 
 
   (def LLVMAbortProcessAction 0)
@@ -156,7 +156,7 @@
 
 
 
-  (defenum LLVMTypeKind
+  (def-enum LLVMTypeKind
     [LLVMVoidTypeKind
      LLVMHalfTypeKind
      LLVMFloatTypeKind
@@ -174,23 +174,23 @@
      LLVMMetadataTypeKind
      LLVMX86_MMXTypeKind])
 
-  (defenum LLVMCodeGentFileType
+  (def-enum LLVMCodeGentFileType
     [LLVMAssemblyFile
      LLVMObjectFile])
 
-  (defenum LLVMRelocMode
+  (def-enum LLVMRelocMode
     [LLVMRelocDefault
      LLVMRelocStatic
      LLVMRelocPIC
      LLVMRelocDynamicNoPIC])
 
-  (defenum LLVMCodeGenOptLevel
+  (def-enum LLVMCodeGenOptLevel
     [LLVMCodeGenLevelNone
      LLVMCodeGenLevelLess
      LLVMCodeGenLevelDefault
      LLVMCodeGenLevelAggressive])
 
-  (defenum LLVMCodeModel
+  (def-enum LLVMCodeModel
     [LLVMCodeModelDefault
      LLVMCodeModelJITDefault
      LLVMCodeModelSmall
@@ -199,7 +199,7 @@
      LLVMCodeModelLarge])
 
 
-  (defenum LLVMLinkage
+  (def-enum LLVMLinkage
     [LLVMExternalLinkage
      LLVMAvailableExternallyLinkage
      LLVMLinkOnceAnyLinkage
@@ -218,7 +218,7 @@
      LLVMLinkerPrivateWeakLinkage
      LLVMLinkerPrivateWeakDefAutoLinkage])
 
-  (defenum LLVMIntPredicate
+  (def-enum LLVMIntPredicate
     32
     [LLVMIntEQ
      LLVMIntNE
@@ -231,7 +231,7 @@
      LLVMIntSLT
      LLVMIntSLE])
 
-  (defenum LLVMRealPredicate
+  (def-enum LLVMRealPredicate
     [LLVMRealPredicateFalse
      LLVMRealOEQ
      LLVMRealOGT
@@ -249,7 +249,7 @@
      LLVMRealUNE
      LLVMRealPredicateTrue])
 
-  (defenum LLVMOpcode
+  (def-enum LLVMOpcode
     1
     [LLVMRet
      LLVMBr
@@ -311,7 +311,7 @@
      LLVMResume
      LLVMLandingPad])
 
-  (defenum LLVMAtomicOrdering
+  (def-enum LLVMAtomicOrdering
     [LLVMAtomicOrderingNotAtomic
     LLVMAtomicOrderingUnordered
     LLVMAtomicOrderingMonotonic
@@ -321,7 +321,7 @@
     LLVMAtomicOrderingAcquireRelease
     LLVMAtomicOrderingSequentiallyConsistent])
 
-  (defenum LLVMAtomicRMWBinOp
+  (def-enum LLVMAtomicRMWBinOp
     [LLVMAtomicRMWBinOpXchg
      LLVMAtomicRMWBinOpAdd
      LLVMAtomicRMWBinOpSub

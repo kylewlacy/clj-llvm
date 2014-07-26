@@ -22,12 +22,12 @@
 (defmacro native [return-type function-name]
   `(native* ~return-type '~function-name))
 
-(defmacro defnative [return-type function-name]
+(defmacro def-native-fn [return-type function-name]
   `(def ~function-name (native* ~return-type '~function-name)))
 
-(defmacro defenum
+(defmacro def-enum
   ([nm defs]
-    `(defenum ~nm 0 ~defs))
+    `(def-enum ~nm 0 ~defs))
   ([nm init defs]
     (list* 'do
       `(def ~nm {:idx ~(zipmap (range)
