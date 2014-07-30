@@ -1,6 +1,7 @@
 ; Taken from https://github.com/halgari/mjolnir/blob/5b1c0cf1c34d5521438ee33974715d98abb7884d/src/mjolnir/llvmc.clj
 (ns clj-llvm.native-interop
-  (:import (com.sun.jna Pointer Memory Callback)))
+  (:require [clj-llvm.java-interop :refer [def-class]])
+  (:import (com.sun.jna Pointer Memory Callback Structure)))
 
 (def ^:dynamic *lib*)
 
@@ -37,6 +38,25 @@
       (map (fn [d idx] `(def ~d ~idx))
            defs
            (range init Integer/MAX_VALUE)))))
+
+(defmacro def-native-struct [name & members]
+  (let [member-parts (partition 2 members)
+        member-types (map first member-parts)
+        member-names (map second member-parts)
+        typed-fields (mapv #(with-meta %1 {:tag %2})
+                           member-names member-types)]
+    `(def-class ~name :extends    com.sun.jna.Structure
+                      :implements [com.sun.jna.Structure$ByValue]
+        (com.sun.jna.Structure [])
+        (com.sun.jna.Structure [com.sun.jna.TypeMapper])
+        (com.sun.jna.Structure [Integer])
+        (com.sun.jna.Structure [Integer com.sun.jna.TypeMapper])
+        (com.sun.jna.Structure [com.sun.jna.Pointer])
+        (com.sun.jna.Structure [com.sun.jna.Pointer Integer])
+        (com.sun.jna.Structure [com.sun.jna.Pointer
+                                Integer
+                                com.sun.jna.TypeMapper])
+        ~@typed-fields)))
 
 (defn new-pointer []
   (let [p (Memory. Pointer/SIZE)]
