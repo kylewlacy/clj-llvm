@@ -1,6 +1,6 @@
-(ns clj-llvm.runtime
-  (:require [clj-llvm.llvm       :refer :all]
-            [clj-llvm.llvm.types :refer :all]))
+(ns cljl.runtime
+  (:require [cljl.llvm       :refer :all]
+            [cljl.llvm.types :refer :all]))
 
 (def ^:dynamic *globals*)
 (def ^:dynamic *decls*)
@@ -60,7 +60,7 @@
 
 
 
-(deflib runtime-lib 'clj-llvm.runtime
+(deflib runtime-lib 'cljl.runtime
   (defn* rand [-> Int32])
   (defn* srand [Int32 seed -> VoidT])
   (defn* time [Int64* timer -> Int64])

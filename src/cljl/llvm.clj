@@ -1,5 +1,5 @@
-(ns clj-llvm.llvm
-  (:require [clj-llvm.llvm.types :as types]))
+(ns cljl.llvm
+  (:require [cljl.llvm.types :as types]))
 
 (defmulti declaration-for :llvm/op)
 

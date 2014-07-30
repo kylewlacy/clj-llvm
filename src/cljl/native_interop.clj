@@ -1,6 +1,6 @@
 ; Taken from https://github.com/halgari/mjolnir/blob/5b1c0cf1c34d5521438ee33974715d98abb7884d/src/mjolnir/llvmc.clj
-(ns clj-llvm.native-interop
-  (:require [clj-llvm.java-interop :refer [def-class]])
+(ns cljl.native-interop
+  (:require [cljl.java-interop :refer [def-class]])
   (:import (com.sun.jna Pointer Memory Callback Structure)))
 
 (def ^:dynamic *lib*)

@@ -1,7 +1,7 @@
 ; Taken from https://github.com/halgari/mjolnir/blob/5b1c0cf1c34d5521438ee33974715d98abb7884d/src/mjolnir/llvmc.clj
-(ns clj-llvm.llvm.interop
+(ns cljl.llvm.interop
   (:import (com.sun.jna Pointer))
-  (:require [clj-llvm.native-interop :refer [with-lib
+  (:require [cljl.native-interop :refer [with-lib
                                              def-native-fn
                                              def-enum]]))
 

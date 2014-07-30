@@ -1,4 +1,4 @@
-(ns clj-llvm.analyzer
+(ns cljl.analyzer
   (:require [clojure.tools.analyzer       :as    analyzer]
             [clojure.tools.analyzer.utils :as    utils]
             [clojure.tools.macro          :refer [macrolet]]

@@ -1,9 +1,9 @@
-(ns clj-llvm.compiler
+(ns cljl.compiler
   (:require [clojure.string               :as    str]
             [clojure.java.io              :refer [reader]]
-            [clj-llvm.analyzer            :as    analyzer]
-            [clj-llvm.llvm.module-builder :as    module-builder]
-            [clj-llvm.builder             :as    builder]))
+            [cljl.analyzer            :as    analyzer]
+            [cljl.llvm.module-builder :as    module-builder]
+            [cljl.builder             :as    builder]))
 
 (defn maybe-dump [module options]
   (when (options :dump)

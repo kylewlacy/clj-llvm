@@ -1,4 +1,4 @@
-(ns clj-llvm.java-interop
+(ns cljl.java-interop
   (:require [clojure.string :as str])
   (:import (clojure.asm         Opcodes Type ClassWriter)
            (clojure.asm.commons Method GeneratorAdapter)))

@@ -1,9 +1,9 @@
-(ns clj-llvm.compiler-spec
+(ns cljl.compiler-spec
   (:require [speclj.core         :refer :all]
-            [clj-llvm.compiler   :refer :all]
-            [clj-llvm.runtime    :refer :all]
-            [clj-llvm.llvm       :as llvm]
-            [clj-llvm.llvm.types :as types]))
+            [cljl.compiler   :refer :all]
+            [cljl.runtime    :refer :all]
+            [cljl.llvm       :as llvm]
+            [cljl.llvm.types :as types]))
 
 (defn compile-and-run
   ([program]
@@ -19,8 +19,8 @@
       (let [program
             '[
               (def -main (fn* -main []
-                (. clj-llvm.runtime printf (do
-                  (. clj-llvm.runtime printf "Inside a do\n")
+                (. cljl.runtime printf (do
+                  (. cljl.runtime printf "Inside a do\n")
                   "Returned from do"))
                 0))
             ]
@@ -36,7 +36,7 @@
                 (let* [fmt "%s bar %s"
                        foo "foo"
                        baz "baz"]
-                  (. clj-llvm.runtime printf fmt foo baz))
+                  (. cljl.runtime printf fmt foo baz))
                 0))
             ]
 
@@ -50,7 +50,7 @@
               (def foo 3)
               (def bar (fn* -main [] 4))
               (def -main (fn* -main []
-                (. clj-llvm.runtime printf "%ld %ld"
+                (. cljl.runtime printf "%ld %ld"
                                            foo
                                            (bar))
                 0))
@@ -76,7 +76,7 @@
       (let [program
             '[
               (def -main (fn* -main []
-                (. clj-llvm.runtime printf "Hello wrold!")
+                (. cljl.runtime printf "Hello wrold!")
                 0))
             ]
 
@@ -93,7 +93,7 @@
             program
             '[
               (def -main (fn* -main []
-                (. clj-llvm.runtime printf "%ld"
+                (. cljl.runtime printf "%ld"
                                            (. test-lib test-fn "Hello" 4))
                 0))
             ]
@@ -114,7 +114,7 @@
             '[
               (def -main (fn* -main []
                 (let* [struct (. test-lib TestStruct 3 4 "the-baz")]
-                  (. clj-llvm.runtime printf "%ld %ld %s"
+                  (. cljl.runtime printf "%ld %ld %s"
                                              (. struct foo)
                                              (. struct bar)
                                              (. struct baz)))

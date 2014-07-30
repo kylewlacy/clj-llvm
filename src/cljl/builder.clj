@@ -1,9 +1,9 @@
-(ns clj-llvm.builder
+(ns cljl.builder
   (:require [clojure.java.io              :refer [reader]]
-            [clj-llvm.llvm                :as    llvm]
-            [clj-llvm.llvm.module-builder :as    builder]
-            [clj-llvm.llvm.types          :as    types]
-            [clj-llvm.runtime             :as    rt]))
+            [cljl.llvm                :as    llvm]
+            [cljl.llvm.module-builder :as    builder]
+            [cljl.llvm.types          :as    types]
+            [cljl.runtime             :as    rt]))
 
 (def ^:dynamic *globals*)
 (def ^:dynamic *locals*)

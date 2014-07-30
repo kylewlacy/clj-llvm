@@ -1,9 +1,9 @@
-(ns clj-llvm.llvm.module-builder
+(ns cljl.llvm.module-builder
   (:require [clojure.java.shell      :as    shell]
-            [clj-llvm.llvm           :as    llvm]
-            [clj-llvm.llvm.types     :as    types]
-            [clj-llvm.llvm.interop   :as    interop]
-            [clj-llvm.native-interop :refer [map-parr
+            [cljl.llvm           :as    llvm]
+            [cljl.llvm.types     :as    types]
+            [cljl.llvm.interop   :as    interop]
+            [cljl.native-interop :refer [map-parr
                                              new-pointer
                                              value-at]]))
 

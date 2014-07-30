@@ -1,4 +1,4 @@
-(ns clj-llvm.llvm.types)
+(ns cljl.llvm.types)
 
 (defn Int [width]
   {:llvm/op :type
