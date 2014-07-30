@@ -10,4 +10,4 @@
   :profiles {:dev {:dependencies [[speclj "3.0.0"]]}}
   :plugins [[speclj "3.0.0"]]
   :test-paths ["spec"]
-  :main cljl.compiler)
+  :main cljl.core)

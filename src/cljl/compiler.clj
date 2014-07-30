@@ -1,6 +1,6 @@
 (ns cljl.compiler
-  (:require [clojure.string               :as    str]
-            [clojure.java.io              :refer [reader]]
+  (:require [clojure.string           :as    str]
+            [clojure.java.io          :refer [reader]]
             [cljl.analyzer            :as    analyzer]
             [cljl.llvm.module-builder :as    module-builder]
             [cljl.builder             :as    builder]))
@@ -92,8 +92,3 @@
     {:dump     true
      :optimize true
      :verbose  true}))
-
-(defn -main [input-file main-ns output-exe & args]
-  (compile-file input-file main-ns output-exe)
-  (println "Done!")
-  (System/exit 0))
