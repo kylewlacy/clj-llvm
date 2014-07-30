@@ -1,4 +1,5 @@
 (ns clj-llvm.java-interop
+  (:require [clojure.string :as str])
   (:import (clojure.asm         Opcodes Type ClassWriter)
            (clojure.asm.commons Method GeneratorAdapter)))
 
@@ -14,11 +15,16 @@
    :public    Opcodes/ACC_PUBLIC
    :static    Opcodes/ACC_STATIC})
 
+
+
 (defn modifiers->opcode [modifiers]
   (reduce bit-or (map modifier->opcode modifiers)))
 
 (defn internal-name [type]
   (.getInternalName (Type/getType type)))
+
+(defn qualified-name->internal-name [qualified-class-name]
+  (str/replace (str qualified-class-name) \. \/))
 
 (defn method-desc [arg-types ret-type]
   (Type/getMethodDescriptor (Type/getType ret-type)
@@ -32,7 +38,7 @@
     (.visit class-writer
             *version*
             (modifiers->opcode modifiers)
-            (str name)
+            (qualified-name->internal-name name)
             nil
             (internal-name superclass)
             (into-array String (map internal-name interfaces)))
@@ -52,11 +58,25 @@
 
 
 
+(defn replace-last [s match replacement]
+  (let [reversed-match       (if (string? match)
+                               (str/reverse match)
+                               match)
+        reversed-replacement (if (string? replacement)
+                               (str/reverse replacement)
+                               replacement)]
+    (-> s
+      str/reverse
+      (str/replace-first reversed-match reversed-replacement)
+      str/reverse)))
+
+
+
 (defn load-class [class name]
   (.visitEnd class)
   (let [bytes        (.toByteArray class)
         class-loader (clojure.lang.DynamicClassLoader.)]
-    (.defineClass class-loader (str name) bytes nil)))
+    (.defineClass class-loader name bytes nil)))
 
 
 
@@ -117,6 +137,11 @@
                              :class  name})))))
     (load-class class name)))
 
+
+
+(defn qualify-class-name [ns- class-name]
+  (str (ns-name ns-) "." class-name))
+
 (defn def-class* [name & opts+members]
   (let [pairs                    (partition-all 2 opts+members)
         pair-is-opt?             #(keyword? (first %))
@@ -124,10 +149,15 @@
         opts                     (apply hash-map (mapcat identity opt-pairs))
         members                  (mapcat identity member-pairs)
         superclass-name          (or (opts :extends) 'Object)
-        interface-names          (or (opts :implements) [])]
-    (apply make-class name [:public] superclass-name interface-names members)))
+        interface-names          (or (opts :implements) [])
+        class-name               (qualify-class-name *ns* name)]
+    (apply make-class class-name
+                      [:public]
+                      superclass-name
+                      interface-names
+                      members)))
 
 (defmacro def-class [name & opts+members]
   `(do
     (apply def-class* '~name '~opts+members)
-    (import '~(symbol (str (ns-name *ns*)) (str name)))))
+    (import '~(symbol (qualify-class-name *ns* name)))))
