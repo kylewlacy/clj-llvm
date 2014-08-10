@@ -1,11 +1,11 @@
 (ns cljl.llvm.module-builder
-  (:require [clojure.java.shell      :as    shell]
+  (:require [clojure.java.shell  :as    shell]
             [cljl.llvm           :as    llvm]
             [cljl.llvm.types     :as    types]
             [cljl.llvm.interop   :as    interop]
             [cljl.native-interop :refer [map-parr
-                                             new-pointer
-                                             value-at]]))
+                                         new-pointer
+                                         value-at]]))
 
 (def ^:dynamic *builder*)
 (def ^:dynamic *module*)
@@ -66,7 +66,9 @@
 (defmethod build-expr :alloca [{:keys [type name id]}]
   (if-let [maybe-alloca (@*built-values* id)]
     maybe-alloca
-    (let [new-alloca (interop/LLVMBuildAlloca *builder* (build-expr type) name)]
+    (let [new-alloca (interop/LLVMBuildAlloca *builder*
+                                              (build-expr type)
+                                              name)]
       (swap! *built-values* assoc id new-alloca)
       new-alloca)))
 
@@ -75,7 +77,7 @@
                                             (str (gensym "block")))
         builder (interop/LLVMCreateBuilder)]
     (interop/LLVMPositionBuilderAtEnd builder block)
-    (binding [*builder*      builder]
+    (binding [*builder* builder]
       (if statements
         (doseq [statement statements]
           (build-expr statement))))

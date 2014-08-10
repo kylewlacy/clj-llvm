@@ -1,5 +1,5 @@
 (ns cljl.compiler-spec
-  (:require [speclj.core         :refer :all]
+  (:require [speclj.core     :refer :all]
             [cljl.compiler   :refer :all]
             [cljl.runtime    :refer :all]
             [cljl.llvm       :as llvm]
