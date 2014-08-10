@@ -43,13 +43,15 @@
 
 
 
-(defn get-temp-filename []
-  (let [temp-file
-          (java.io.File/createTempFile (str (gensym "temp"))
-                                       nil
-                                       nil)]
-    (.deleteOnExit temp-file)
-    (.toString temp-file)))
+(defn get-temp-filename
+  ([] (get-temp-filename nil))
+  ([ext]
+    (let [temp-file
+            (java.io.File/createTempFile (str (gensym "temp"))
+                                         ext
+                                         nil)]
+      (.deleteOnExit temp-file)
+      (.toString temp-file))))
 
 (defn compile-module-to-object
   ([module options]
