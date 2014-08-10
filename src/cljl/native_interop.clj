@@ -12,12 +12,12 @@
 (defn get-function [s]
   (com.sun.jna.Function/getFunction (name *lib*) (name s)))
 
-; (defn dbg [& args] (apply println args) (last args))
+#_(defn dbg [& args] (apply println args) (last args))
 (defn native* [return-type function-symbol]
   (let [func (get-function function-symbol)]
     (fn [& args]
-      ; (apply println (str function-symbol) "args:" args)
-      ; (dbg "  =>" (.invoke func return-type (to-array args))))))
+      #_(apply println (str function-symbol) "args:" args)
+      #_(dbg "  =>" (.invoke func return-type (to-array args)))
       (.invoke func return-type (to-array args)))))
 
 (defmacro native [return-type function-name]
@@ -95,7 +95,11 @@
                                       (gensym "CallbackInterface")))
         protocol-method  (vector 'callback (vec arg-types) ret-type)]
     (assert (every? identity arg-types)
-            (str "Unknown type in arg list " (vec arg-type-symbols)))
+            (str "Unknown types in arg list "
+                 (vec (remove nil?
+                              (map #(if-not %1 %2)
+                                   arg-types
+                                   arg-type-symbols)))))
     (assert ret-type (str "Unknown return type " ret-type-symbol))
     `(do
       (gen-interface :name    ~protocol-name
