@@ -1,5 +1,5 @@
-(ns cljl.compiler-spec
-  (:require [speclj.core     :refer :all]
+(ns cljl.compiler-test
+  (:require [midje.sweet     :refer :all]
             [cljl.compiler   :refer :all]
             [cljl.runtime    :refer :all]
             [cljl.llvm       :as llvm]
@@ -13,9 +13,9 @@
       (compile-forms program (if lib [lib] nil) 'user filename)
       (clojure.java.shell/sh filename))))
 
-(describe "The compiler"
-  (context "supporting Clojure features"
-    (it "can compile 'do' statements"
+(facts "About the compiler"
+  (facts "about Clojure features"
+    (fact "`do` statements return the result of the last expression"
       (let [program
             '[
               (def -main (fn* -main []
@@ -27,9 +27,9 @@
 
             result
             (compile-and-run program)]
-        (should= "Inside a do\nReturned from do" (result :out))))
+        (result :out) => "Inside a do\nReturned from do"))
 
-    (it "can compile 'let' statements"
+    (fact "`let*` binds values in the lexical scope"
       (let [program
             '[
               (def -main (fn* -main []
@@ -42,9 +42,9 @@
 
             result
             (compile-and-run program)]
-        (should= "foo bar baz" (result :out))))
+        (result :out) => "foo bar baz"))
 
-    (it "can compile 'def' statements"
+    (fact "`def` statements define variables in the global scope"
       (let [program
             '[
               (def foo 3)
@@ -58,10 +58,10 @@
 
             result
             (compile-and-run program)]
-        (should= "3 4" (result :out)))))
+        (result :out) => "3 4"))
 
-  (context "interoping with C"
-    (it "can return a status code"
+  (facts "about C interop"
+    (fact "programs can return a status code"
       (let [program
             '[
               (def -main (fn* -main []
@@ -70,9 +70,9 @@
 
             result
             (compile-and-run program)]
-        (should= 42 (result :exit))))
+        (result :exit) => 42))
 
-    (it "can call libc functions"
+    (fact "the program can call libc functions"
       (let [program
             '[
               (def -main (fn* -main []
@@ -82,9 +82,9 @@
 
             result
             (compile-and-run program)]
-        (should= "Hello wrold!" (result :out))))
+        (result :out) => "Hello wrold!"))
 
-    (it "can call custom LLVM functions"
+    (fact "the program can call custom LLVM functions"
       (let [test-lib
             (lib 'test-lib
               (defn* test-fn [types/Int8* x types/Int64 y -> types/Int64]
@@ -100,9 +100,9 @@
 
             result
             (compile-and-run program test-lib)]
-          (should= "4" (result :out))))
+          (result :out) => "4"))
 
-    (it "can create and use structs"
+    (fact "the program can create and use structs"
       (let [test-lib
             (lib 'test-lib
               (defstruct* TestStruct
@@ -123,4 +123,4 @@
 
             result
             (compile-and-run program test-lib)]
-        (should= "3 4 the-baz" (result :out))))))
+        (result :out) => "3 4 the-baz")))))
